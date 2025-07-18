@@ -5,6 +5,8 @@ import InputText from "@/component/InputText";
 import { useUsername } from "@/hooks/useUsername";
 import { useState, useEffect } from "react";
 import { io, Socket } from "socket.io-client";
+import profile from '../../assets/app-profile.png';
+import Image from "next/image";
 
 let socket: Socket;
 
@@ -68,7 +70,8 @@ export default function Lobby() {
 
 	return (
 		<div style={{ maxWidth: 400, margin: "auto", padding: 20, }}>
-			<h1 style={{ fontSize: "24px", margin: '0 0 24px 0' }}>Lobby</h1>
+			<Image src={profile} alt="App profile" width={200} height={200} style={{justifySelf: 'center', borderRadius: '24px'}}/>
+			<h1 style={{ fontSize: "24px", margin: '24px  0', textAlign:'center' }}>Fake Wavelength TH</h1>
 			<InputText
 				placeholder="ชื่อ"
 				value={username}
