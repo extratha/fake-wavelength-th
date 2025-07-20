@@ -10,7 +10,11 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "baseUrl": ".",
-    "types": ["node"]
+    "types": ["node"],
+    "typeRoots": ["./src/types", "./node_modules/@types"],
+    "paths": {
+      "*": ["types/*"]
+    }
   },
-  "include": ["src/server"]
+  "include": ["src/server/**/*", "src/types/**/*"]
 }
