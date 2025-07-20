@@ -1,3 +1,5 @@
+'use client'
+
 import { useUserProfile } from '@/hooks/useUserProfile'
 import { socket } from '@/lib/socket'
 import { useEffect, useState } from 'react'
