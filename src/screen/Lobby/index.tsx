@@ -11,8 +11,6 @@ import { v4 as uuidv4 } from 'uuid'
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useUserProfile } from "@/hooks/useUserProfile";
 
-type RoomStatus = "idle" | "exists" | "created" | "error";
-
 export default function Lobby() {
 	const roomPattern = /^[a-zA-Z0-9-]+$/
 	const socketRef = useRef<Socket | null>(null)
@@ -22,7 +20,6 @@ export default function Lobby() {
 	const searchParams = useSearchParams()
 
 	const [room, setRoom] = useState("");
-	const [roomStatus, setRoomStatus] = useState<RoomStatus>("idle");
 	const [availableRooms, setAvailableRooms] = useState<string[]>([]);
 	const [modalOptions, setModalOptions] = useState<ModalOptions>({
 		open: false,
@@ -57,7 +54,6 @@ export default function Lobby() {
 		});
 
 		socket.on("roomExists", () => {
-			setRoomStatus("exists");
 			setModalOptions({
 				open: true,
 				message: "ห้องนี้มีอยู่แล้ว ไม่สามารถสร้างซ้ำได้",
@@ -65,7 +61,6 @@ export default function Lobby() {
 		});
 
 		socket.on("roomCreated", () => {
-			setRoomStatus("created");
 			setModalOptions({
 				open: true,
 				message: "สร้างห้องสำเร็จ! เข้าสู่ห้อง...",
@@ -74,13 +69,13 @@ export default function Lobby() {
 		});
 
 		socket.on("roomError", (msg: string) => {
-			setRoomStatus("error");
 			setModalOptions({
 				open: true,
 				message: msg || "เกิดข้อผิดพลาดในการเข้าห้อง",
 			});
 		});
 
+    //eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	useEffect(() => {
@@ -92,7 +87,7 @@ export default function Lobby() {
 				message: error,
 			});
 
-			const params = new URLSearchParams(searchParams as any) // แปลงให้เป็น URLSearchParams ปกติ
+			const params = new URLSearchParams(searchParams)
 			params.delete('error')
 			const path = window.location.pathname + (params.toString() ? `?${params.toString()}` : '')
 			router.replace(path, { scroll: false })
@@ -127,7 +122,6 @@ export default function Lobby() {
 			roomId: room,
 			isClueGiver: false,
 		})
-		setRoomStatus("idle");
 		socketRef.current.emit("createRoom", { room, name: profile.userName, userId: profile.userId }, (response: { success: boolean; message?: string }) => {
 			console.log("CreateRoom response:", response);
 			if (response.success) {
@@ -171,7 +165,6 @@ export default function Lobby() {
 			roomId: room,
 			isClueGiver: false,
 		})
-		setRoomStatus("idle");
 
 		socketRef.current.emit("joinRoom", { room, name: profile.userName, userId: profile.userId }, (response: { success: boolean; message?: string }) => {
 			console.log("Join room response:", response);

@@ -2,8 +2,6 @@
 
 import { createContext, useState, ReactNode, useEffect } from 'react'
 
-type UserRole = 'host' | 'player' | 'clueGiver' | null
-
 type UserProfile = {
   userName: string
   roomId?: string

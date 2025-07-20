@@ -1,7 +1,5 @@
-type ContentProps = {
-  
-}
-const Content = ({}:ContentProps) => {
-  return <></>
+
+const Content = () => {
+  return <>hello</>
 }
 export default Content

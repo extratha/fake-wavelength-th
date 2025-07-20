@@ -1,14 +1,13 @@
 import { useUserProfile } from '@/hooks/useUserProfile'
 import { socket } from '@/lib/socket'
 import { useEffect, useState } from 'react'
-import { useRouter, useSearchParams, usePathname } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Modal, { ModalOptions } from '@/component/Modal'
 
 export default function MainScreen() {
   const { profile, profileReady } = useUserProfile()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const pathname = usePathname()
   const error = searchParams.get('error')
 
   const [isHost, setIsHost] = useState(false);
@@ -64,6 +63,7 @@ export default function MainScreen() {
       socket.off("newHost", handleNewHost);
       window.removeEventListener("beforeunload", leaveRoomOnUnload);
     };
+    //eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileReady, profile]);
 
   if (!profileReady || !profile) return <div>กำลังโหลดข้อมูลผู้เล่น...</div>;
