@@ -5,8 +5,10 @@ import { useSearchParams } from "next/navigation";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { socket } from "@/lib/socket";
 import PlayersPanel from "./PlayersPanel";
+import WheelDial from "./WheelDial";
 
 export type GameState = {
+  roomId: string;
   clueGiver: string | null;
   scores: Record<string, number>;
   promptPair: [string, string] | null;
@@ -17,6 +19,9 @@ export type GameState = {
   teamB: string[];
   users: { userId: string; name: string }[];
   hostId: string;
+  dialRotation: number;
+  screenOpen: boolean;
+  markerRotation: number;
 };
 
 
@@ -65,7 +70,7 @@ const GameContent = () => {
         <PlayersPanel users={gameState.users} hostId={gameState.hostId} isHost={isHost} clueGiver={gameState.clueGiver} />
       </div>
       <div className="w-full flex justify-center mt-[32px]">
-        WHEEL 
+        <WheelDial gameState={gameState} /> 
       </div>
       <div>
       </div>

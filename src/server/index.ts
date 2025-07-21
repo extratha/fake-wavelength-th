@@ -21,6 +21,7 @@ app.use(cors());
 app.use(express.json());
 
 type GameState = {
+  roomId: string;
   clueGiver: string | null;
   scores: Record<string, number>;
   promptPair: [string, string] | null;
@@ -31,6 +32,9 @@ type GameState = {
   teamB: string[];
   users: { userId: string; name: string }[];
   hostId: string;
+  dialRotation: number;
+  screenOpen: boolean;
+  markerRotation: number;
 };
 
 type RoomType = {
@@ -99,6 +103,10 @@ io.on("connection", (socket) => {
           teamB: [],
           users: [user],
           hostId: userId,
+          roomId: room,
+          dialRotation: 0,
+          screenOpen: false,
+          markerRotation: 0,
         },
         hostId: userId,
       };
@@ -144,13 +152,14 @@ io.on("connection", (socket) => {
     console.log(`${name} (${userId}) joined room ${room}`);
   });
 
-  socket.on("leaveRoom", ({ roomId, userId }) => {
+  socket.on("leaveRoom", ({ roomId, userId, name }) => {
     const room = rooms[roomId];
     if (!room) return;
 
     room.users.delete(userId);
     socket.leave(roomId);
     console.log(`${userId} (${name}) left room ${roomId}`);
+
     socket.emit('forceLeftRoom')
 
     // ถ้า host ออก ให้ตั้ง host ใหม่
@@ -251,6 +260,34 @@ io.on("connection", (socket) => {
     }
 
     console.log(`❌ ${userId} kicked from room ${roomId}`);
+  });
+
+
+  // WHEEL ACTION 
+  socket.on("updateDialRotation", ({ roomId, rotation, userName }) => {
+    const room = rooms[roomId];
+    if (!room) return;
+    room.state.dialRotation = rotation;
+    console.log(`${userName} has updateDialRotation : ${rotation}`)
+    updateRoomState(roomId, room);
+  });
+
+  socket.on("toggleScreen", ({ roomId, screenOpen, userName }) => {
+    const room = rooms[roomId];
+    if (!room) return;
+
+    room.state.screenOpen = screenOpen;
+    console.log(`${userName} has updated screenOpen : ${screenOpen}`)
+    updateRoomState(roomId, room);
+  });
+
+  socket.on("randomizeMarker", ({ roomId, rotation, userName }) => {
+    const room = rooms[roomId];
+    if (!room) return;
+
+    room.state.markerRotation = rotation;
+    console.log(`${userName} has updated randomizeMarker : ${rotation}`)
+    updateRoomState(roomId, room);
   });
 
 

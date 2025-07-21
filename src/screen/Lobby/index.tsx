@@ -4,7 +4,7 @@ import Button from "@/component/Button";
 import InputText from "@/component/InputText";
 import Modal, { ModalOptions } from "@/component/Modal";
 import { useState, useEffect, useRef } from "react";
-import {  Socket } from "socket.io-client";
+import { Socket } from "socket.io-client";
 import { socket } from '@/lib/socket'
 import profileImage from "../../assets/app-profile.png";
 import Image from "next/image";
@@ -50,6 +50,7 @@ export default function Lobby() {
 		socketCurrent.emit("leaveRoom", {
 			roomId: profile.roomId,
 			userId: profile.userId,
+			name: profile.userName
 		});
 
 
@@ -96,21 +97,21 @@ export default function Lobby() {
 					open: true,
 					message: 'รอสักครู่ กำลังเชื่อมต่อเซิร์ฟเวอร์...',
 				});
-				return
+				throw 'connecting'
 			}
 			if (!profile.userName.trim() || !room.trim()) {
 				setModalOptions({
 					open: true,
 					message: 'กรุณากรอกชื่อและหมายเลขห้อง',
 				});
-				return;
+				throw 'require_fields'
 			}
 			if (!roomPattern.test(room)) {
 				setModalOptions({
 					open: true,
 					message: 'หมายเลขห้องต้องเป็นตัวอักษร A-Z ตัวเลข และขีดกลาง (-) เท่านั้น',
 				});
-				return
+				throw 'validation_fields'
 			}
 
 			updateProfile({
@@ -130,10 +131,8 @@ export default function Lobby() {
 			});
 		} catch (error) {
 			console.log("Create Room Error : ", error)
-		} finally {
 			setIsLoading(false)
 		}
-
 	};
 
 	const joinRoom = () => {
@@ -145,14 +144,14 @@ export default function Lobby() {
 					open: true,
 					message: 'รอสักครู่ กำลังเชื่อมต่อเซิร์ฟเวอร์...',
 				});
-				return
+				throw 'connecting'
 			}
 			if (!profile.userName.trim() || !room.trim()) {
 				setModalOptions({
 					open: true,
 					message: 'กรุณากรอกชื่อและหมายเลขห้อง',
 				});
-				return;
+				throw 'require_fields'
 			}
 
 			if (!roomPattern.test(room)) {
@@ -160,7 +159,7 @@ export default function Lobby() {
 					open: true,
 					message: 'หมายเลขห้องต้องเป็นตัวอักษร A-Z ตัวเลข และขีดกลาง (-) เท่านั้น',
 				});
-				return
+				throw 'validation_fields'
 			}
 
 			updateProfile({
@@ -181,10 +180,11 @@ export default function Lobby() {
 			});
 		} catch (error) {
 			console.log("Join Room Error : ", error)
-		} finally {
 			setIsLoading(false)
+		} finally{
+			setIsLoading(false)
+			
 		}
-
 	};
 
 	const handleCloseModal = () => {

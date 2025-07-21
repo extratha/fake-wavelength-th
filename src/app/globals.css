@@ -25,3 +25,7 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.clip-half-circle {
+  clip-path: polygon(0 0, 100% 0, 100% 50%, 0 50%);
+}

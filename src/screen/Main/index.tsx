@@ -28,12 +28,21 @@ export default function MainScreen() {
     console.log('handle force left')
     router.back()
   }
-   const handleGameStateUpdate = (state: GameState) => {
-      setIsClueGiver(state.clueGiver === profile.userId)
-    };
+  const handleGameStateUpdate = (state: GameState) => {
+    setIsClueGiver(state.clueGiver === profile.userId)
+  };
 
   useEffect(() => {
-    if (!profileReady || !profile?.roomId || !profile?.userId) return ;
+    if (!profile?.roomId) {
+      router.replace('/lobby?error=ไม่พบห้อง')
+      return
+    }
+    if (!profile.userName) {
+      router.replace('/lobby?error=กรุณาตั้งชื่อ')
+      return
+    }
+
+    if (!profileReady ||  !profile?.userId) return;
 
     // ✅ Emit joinRoom หลัง profile พร้อม
     socket.emit("joinRoom", {
@@ -62,6 +71,7 @@ export default function MainScreen() {
       socket.emit("leaveRoom", {
         roomId: profile.roomId,
         userId: profile.userId,
+        name: profile.userName
       });
     };
 
@@ -99,7 +109,7 @@ export default function MainScreen() {
         <div>รอคำใบ้...</div>
       )}
 
-      <GameContent/>
+      <GameContent />
 
       <Modal options={{ ...modalOptions, onClose: handleCloseModal }} />
     </div>

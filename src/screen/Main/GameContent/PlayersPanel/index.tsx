@@ -12,7 +12,6 @@ type Player = {
   name: string;
 };
 
-
 type PlayersProps = {
   users: { userId: string; name: string }[];
   hostId: string;
