@@ -5,6 +5,7 @@ import { socket } from '@/lib/socket'
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Modal, { ModalOptions } from '@/component/Modal'
+import GameContent, { GameState } from './GameContent'
 
 export default function MainScreen() {
   const { profile, profileReady } = useUserProfile()
@@ -17,6 +18,7 @@ export default function MainScreen() {
     open: false,
     message: "",
   });
+  const [isClueGiver, setIsClueGiver] = useState(false)
 
   // ✅ ฟังก์ชันสำหรับรับ host ใหม่
   const handleNewHost = ({ userId }: { userId: string }) => {
@@ -26,6 +28,9 @@ export default function MainScreen() {
     console.log('handle force left')
     router.back()
   }
+   const handleGameStateUpdate = (state: GameState) => {
+      setIsClueGiver(state.clueGiver === profile.userId)
+    };
 
   useEffect(() => {
     if (!profileReady || !profile?.roomId || !profile?.userId) return ;
@@ -37,16 +42,18 @@ export default function MainScreen() {
       name: profile.userName,
     }, (response: { success: boolean; currentHostId?: string }) => {
       if (response.success) {
+        console.log('join room ', profile.roomId)
         setIsHost(response.currentHostId === profile.userId);
       } else {
         console.log('join room failed')
-        router.replace('/?error=ไม่พบห้อง')
+        router.replace('/lobby?error=ไม่พบห้อง')
       }
     });
 
     // ✅ ตั้ง listener
     socket.on("newHost", handleNewHost);
     socket.on('forceLeftRoom', handleLeftRoom)
+    socket.on("gameStateUpdate", handleGameStateUpdate);
 
 
     // ✅ Leave room ตอนปิดหน้า
@@ -86,11 +93,13 @@ export default function MainScreen() {
         สวัสดี {profile.userName} {isHost && "(Host)"}
       </h1>
 
-      {profile.isClueGiver ? (
-        <div>คุณเป็น Clue Giver 🎯</div>
+      {isClueGiver ? (
+        <div>คุณเป็น คนให้คำใบ้ !! 🎯</div>
       ) : (
         <div>รอคำใบ้...</div>
       )}
+
+      <GameContent/>
 
       <Modal options={{ ...modalOptions, onClose: handleCloseModal }} />
     </div>

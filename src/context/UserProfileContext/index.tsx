@@ -6,7 +6,6 @@ type UserProfile = {
   userName: string
   roomId?: string
   userId?: string
-  isClueGiver?: boolean
 }
 
 type UserProfileContextType = {

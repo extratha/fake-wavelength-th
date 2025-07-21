@@ -26,7 +26,6 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "src/hooks/useUsername",
-    "src/types/**/*"
   ],
   "exclude": ["node_modules", "src/server"]
 }

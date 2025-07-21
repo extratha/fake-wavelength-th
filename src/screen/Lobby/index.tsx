@@ -4,12 +4,14 @@ import Button from "@/component/Button";
 import InputText from "@/component/InputText";
 import Modal, { ModalOptions } from "@/component/Modal";
 import { useState, useEffect, useRef } from "react";
-import { io, Socket } from "socket.io-client";
+import {  Socket } from "socket.io-client";
+import { socket } from '@/lib/socket'
 import profileImage from "../../assets/app-profile.png";
 import Image from "next/image";
 import { v4 as uuidv4 } from 'uuid'
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useUserProfile } from "@/hooks/useUserProfile";
+import FullScreenLoading from "@/component/FullScreenLoading";
 
 export default function Lobby() {
 	const roomPattern = /^[a-zA-Z0-9-]+$/
@@ -21,15 +23,15 @@ export default function Lobby() {
 
 	const [room, setRoom] = useState("");
 	const [availableRooms, setAvailableRooms] = useState<string[]>([]);
+	const [isLoading, setIsLoading] = useState(false)
 	const [modalOptions, setModalOptions] = useState<ModalOptions>({
 		open: false,
 		message: "",
 	});
-	socketRef.current = io(process.env.NEXT_PUBLIC_SOCKET_URL || '')
+	socketRef.current = socket
+	const socketCurrent = socketRef.current;
 
-	const socket = socketRef.current;
-
-	socket.on("updateRooms", (rooms: string[]) => {
+	socketCurrent.on("updateRooms", (rooms: string[]) => {
 		setAvailableRooms(rooms);
 	});
 
@@ -39,28 +41,19 @@ export default function Lobby() {
 			updateProfile({ ...profile, userId: uuidv4() })
 		}
 
-		socket.on("connect", () => {
-			console.log("connected", socket.id);
-
-			socket.emit("getAvailableRooms", (rooms: string[]) => {
-				console.log("Rooms:", rooms);
-				setAvailableRooms(rooms);
-			});
+		socketCurrent.on("connect", () => {
 		});
 
-		socket.emit("leaveRoom", {
+		socketCurrent.emit("getAvailableRooms", (rooms: string[]) => {
+			setAvailableRooms(rooms);
+		});
+		socketCurrent.emit("leaveRoom", {
 			roomId: profile.roomId,
 			userId: profile.userId,
 		});
 
-		socket.on("roomExists", () => {
-			setModalOptions({
-				open: true,
-				message: "ห้องนี้มีอยู่แล้ว ไม่สามารถสร้างซ้ำได้",
-			});
-		});
 
-		socket.on("roomCreated", () => {
+		socketCurrent.on("roomCreated", () => {
 			setModalOptions({
 				open: true,
 				message: "สร้างห้องสำเร็จ! เข้าสู่ห้อง...",
@@ -68,14 +61,14 @@ export default function Lobby() {
 
 		});
 
-		socket.on("roomError", (msg: string) => {
+		socketCurrent.on("roomError", (msg: string) => {
 			setModalOptions({
 				open: true,
 				message: msg || "เกิดข้อผิดพลาดในการเข้าห้อง",
 			});
 		});
 
-    //eslint-disable-next-line react-hooks/exhaustive-deps
+		//eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	useEffect(() => {
@@ -95,93 +88,110 @@ export default function Lobby() {
 	}, [searchParams, router])
 
 	const createRoom = () => {
-		if (!socketRef.current) {
-			setModalOptions({
-				open: true,
-				message: 'รอสักครู่ กำลังเชื่อมต่อเซิร์ฟเวอร์...',
-			});
-			return
-		}
-		if (!profile.userName.trim() || !room.trim()) {
-			setModalOptions({
-				open: true,
-				message: 'กรุณากรอกชื่อและหมายเลขห้อง',
-			});
-			return;
-		}
-		if (!roomPattern.test(room)) {
-			setModalOptions({
-				open: true,
-				message: 'หมายเลขห้องต้องเป็นตัวอักษร A-Z ตัวเลข และขีดกลาง (-) เท่านั้น',
-			});
-			return
-		}
+		try {
+			setIsLoading(true)
 
-		updateProfile({
-			...profile,
-			roomId: room,
-			isClueGiver: false,
-		})
-		socketRef.current.emit("createRoom", { room, name: profile.userName, userId: profile.userId }, (response: { success: boolean; message?: string }) => {
-			console.log("CreateRoom response:", response);
-			if (response.success) {
-				router.push(`/main?room=${room}`);
-			} else {
+			if (!socketRef.current) {
 				setModalOptions({
 					open: true,
-					message: response.message || "สร้างห้องไม่สำเร็จ",
+					message: 'รอสักครู่ กำลังเชื่อมต่อเซิร์ฟเวอร์...',
 				});
+				return
 			}
-		});
+			if (!profile.userName.trim() || !room.trim()) {
+				setModalOptions({
+					open: true,
+					message: 'กรุณากรอกชื่อและหมายเลขห้อง',
+				});
+				return;
+			}
+			if (!roomPattern.test(room)) {
+				setModalOptions({
+					open: true,
+					message: 'หมายเลขห้องต้องเป็นตัวอักษร A-Z ตัวเลข และขีดกลาง (-) เท่านั้น',
+				});
+				return
+			}
+
+			updateProfile({
+				...profile,
+				roomId: room,
+			})
+			socketRef.current.emit("createRoom", { room, name: profile.userName, userId: profile.userId }, (response: { success: boolean; message?: string }) => {
+				console.log("CreateRoom response:", response);
+				if (response.success) {
+					router.push(`/main?room=${room}`);
+				} else {
+					setModalOptions({
+						open: true,
+						message: response.message || "สร้างห้องไม่สำเร็จ",
+					});
+				}
+			});
+		} catch (error) {
+			console.log("Create Room Error : ", error)
+		} finally {
+			setIsLoading(false)
+		}
 
 	};
 
 	const joinRoom = () => {
-		if (!socketRef.current) {
-			setModalOptions({
-				open: true,
-				message: 'รอสักครู่ กำลังเชื่อมต่อเซิร์ฟเวอร์...',
-			});
-			return
-		}
-		if (!profile.userName.trim() || !room.trim()) {
-			setModalOptions({
-				open: true,
-				message: 'กรุณากรอกชื่อและหมายเลขห้อง',
-			});
-			return;
-		}
+		try {
+			setIsLoading(true)
 
-		if (!roomPattern.test(room)) {
-			setModalOptions({
-				open: true,
-				message: 'หมายเลขห้องต้องเป็นตัวอักษร A-Z ตัวเลข และขีดกลาง (-) เท่านั้น',
-			});
-			return
-		}
-
-		updateProfile({
-			...profile,
-			roomId: room,
-			isClueGiver: false,
-		})
-
-		socketRef.current.emit("joinRoom", { room, name: profile.userName, userId: profile.userId }, (response: { success: boolean; message?: string }) => {
-			console.log("Join room response:", response);
-			if (response.success) {
-				router.push(`/main?room=${room}`);
-			} else {
+			if (!socketRef.current) {
 				setModalOptions({
 					open: true,
-					message: response.message || "เข้าห้องไม่สำเร็จ",
+					message: 'รอสักครู่ กำลังเชื่อมต่อเซิร์ฟเวอร์...',
 				});
+				return
 			}
-		});
+			if (!profile.userName.trim() || !room.trim()) {
+				setModalOptions({
+					open: true,
+					message: 'กรุณากรอกชื่อและหมายเลขห้อง',
+				});
+				return;
+			}
+
+			if (!roomPattern.test(room)) {
+				setModalOptions({
+					open: true,
+					message: 'หมายเลขห้องต้องเป็นตัวอักษร A-Z ตัวเลข และขีดกลาง (-) เท่านั้น',
+				});
+				return
+			}
+
+			updateProfile({
+				...profile,
+				roomId: room,
+			})
+
+			socketRef.current.emit("joinRoom", { room, name: profile.userName, userId: profile.userId }, (response: { success: boolean; message?: string }) => {
+				console.log("Join room response:", response);
+				if (response.success) {
+					router.push(`/main?room=${room}`);
+				} else {
+					setModalOptions({
+						open: true,
+						message: response.message || "เข้าห้องไม่สำเร็จ",
+					});
+				}
+			});
+		} catch (error) {
+			console.log("Join Room Error : ", error)
+		} finally {
+			setIsLoading(false)
+		}
 
 	};
+
 	const handleCloseModal = () => {
 		setModalOptions(prev => ({ ...prev, open: false }));
 	};
+
+	if (isLoading) return <FullScreenLoading />
 
 	return (
 		<div style={{ display: 'flex', flexDirection: 'row' }}>

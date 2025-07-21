@@ -14,7 +14,7 @@ const InputText = React.forwardRef<HTMLInputElement, InputTextProps>(
         ref={ref}
         {...rest}
         className={clsx(
-          "w-full px-4 py-2 rounded-xl border outline-none transition-all",
+          "w-full px-4 py-2 rounded-xl border outline-none transition-all text-darkBrown",
           error
             ? "border-red-500 focus:ring-red-300"
             : "border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-300",

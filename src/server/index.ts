@@ -2,7 +2,6 @@ import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import cors from "cors";
-
 declare module "socket.io" {
   interface Socket {
     userId?: string;
@@ -22,21 +21,28 @@ app.use(cors());
 app.use(express.json());
 
 type GameState = {
-  phase: "waiting" | "playing" | "ended";
   clueGiver: string | null;
   scores: Record<string, number>;
+  promptPair: [string, string] | null;
+  answerPosition: number | null;
+  guessPosition: number | null;
+  clue: string | null;
+  teamA: string[];
+  teamB: string[];
+  users: { userId: string; name: string }[];
+  hostId: string;
 };
 
-const rooms: Record<
-  string,
-  {
-    users: Map<string, { name: string; userId: string }>;
-    state: GameState;
-    hostId: string
-  }
-> = {};
+type RoomType = {
+  users: Map<string, { name: string; userId: string }>;
+  state: GameState;
+  hostId: string
+}
+
+const rooms: Record<string, RoomType> = {};
 
 const roomTimeouts: Record<string, NodeJS.Timeout> = {};
+
 function scheduleRoomDeletion(roomId: string) {
   if (roomTimeouts[roomId]) return;
 
@@ -56,10 +62,21 @@ function cancelRoomDeletion(roomId: string) {
   }
 }
 
+function updateRoomState(roomId: string, room: RoomType) {
+  const gameStateWithUsers: GameState = {
+    ...room.state,
+    hostId: room.hostId,
+    users: Array.from(room.users.values()),
+  };
+  console.log('server emit game state to client ')
+  io.to(roomId).emit("gameStateUpdate", gameStateWithUsers);
+}
+
 io.on("connection", (socket) => {
 
   socket.on("getAvailableRooms", (callback) => {
     const availableRooms = Object.keys(rooms);
+    console.log('available rooms ', rooms)
     callback(availableRooms);
   });
 
@@ -67,22 +84,34 @@ io.on("connection", (socket) => {
     if (rooms[room]) {
       if (callback) callback({ success: false, message: "ห้องนี้มีอยู่แล้ว ไม่สามารถสร้างซ้ำได้" });
     } else {
+
+      const user = { name, userId };
       rooms[room] = {
-        users: new Map(),
+        users: new Map([[userId, user]]),
         state: {
-          phase: "waiting",
           clueGiver: null,
           scores: {},
+          promptPair: null,
+          answerPosition: null,
+          guessPosition: null,
+          clue: null,
+          teamA: [],
+          teamB: [],
+          users: [user],
+          hostId: userId,
         },
         hostId: userId,
       };
-      rooms[room].users.set(userId, { name, userId });
+
       socket.join(room);
       socket.userId = userId
+
       console.log(`Room ${room} created by ${name} (${userId})`);
-      console.log("Current rooms info:", rooms);
+
       io.emit("updateRooms", Object.keys(rooms));
       if (callback) callback({ success: true });
+
+      updateRoomState(room, rooms[room]);
     }
   });
 
@@ -110,6 +139,8 @@ io.on("connection", (socket) => {
       currentHostId: existingRoom.hostId
     });
 
+    updateRoomState(room, existingRoom)
+
     console.log(`${name} (${userId}) joined room ${room}`);
   });
 
@@ -119,11 +150,10 @@ io.on("connection", (socket) => {
 
     room.users.delete(userId);
     socket.leave(roomId);
-    console.log(`${userId} left room ${roomId}`);
+    console.log(`${userId} (${name}) left room ${roomId}`);
     socket.emit('forceLeftRoom')
 
     // ถ้า host ออก ให้ตั้ง host ใหม่
-    console.log('host :', room.hostId, 'leaved user :', userId)
     if (room.hostId === userId) {
       const users = Array.from(room.users.values()); if (users.length > 0) {
         const newHost = users[Math.floor(Math.random() * users.length)];
@@ -134,6 +164,8 @@ io.on("connection", (socket) => {
         room.hostId = "";
       }
     }
+    updateRoomState(roomId, room)
+
 
     if (room.users.size === 0 && !roomTimeouts[roomId]) {
       scheduleRoomDeletion(roomId)
@@ -162,6 +194,65 @@ io.on("connection", (socket) => {
   socket.on("reconnect", () => {
     console.log("✅ reconnect success");
   });
+
+
+  socket.on("assignClueGiver", ({ roomId, userId }) => {
+    const room = rooms[roomId];
+    if (!room) return;
+
+    // ตรวจสอบว่าผู้เล่นอยู่ในห้อง
+    const user = room.users.get(userId);
+    if (!user) return;
+
+    room.state.clueGiver = userId;
+    console.log(`🎯 ${user.name} (${userId}) is now Clue Giver in room ${roomId}`);
+
+    updateRoomState(roomId, room);
+  });
+
+  socket.on("kickUser", ({ roomId, userId }) => {
+    const room = rooms[roomId];
+    if (!room) return;
+
+    if (!room.users.has(userId)) return;
+
+    room.users.delete(userId);
+
+    // เตะผู้ใช้จาก room (server-side)
+    io.to(roomId).emit("userKicked", { userId });
+
+    // ถ้า host โดนเตะด้วย (จริง ๆ ไม่ควร allow เตะ host แต่กันไว้ก่อน)
+    if (room.hostId === userId) {
+      const remainingUsers = Array.from(room.users.values());
+      if (remainingUsers.length > 0) {
+        const newHost = remainingUsers[Math.floor(Math.random() * remainingUsers.length)];
+        room.hostId = newHost.userId;
+        io.to(roomId).emit("newHost", { userId: newHost.userId, name: newHost.name });
+      } else {
+        room.hostId = "";
+      }
+    }
+
+    updateRoomState(roomId, room);
+
+    // ลบออกจาก socket room
+    const sockets = io.sockets.sockets;
+    for (const [, s] of sockets) {
+      if (s.userId === userId) {
+        s.leave(roomId);
+        s.emit("forceLeftRoom"); // แจ้งฝั่ง client ให้ออกจาก room
+        break;
+      }
+    }
+
+    // ถ้าไม่มีใครในห้องแล้ว
+    if (room.users.size === 0 && !roomTimeouts[roomId]) {
+      scheduleRoomDeletion(roomId);
+    }
+
+    console.log(`❌ ${userId} kicked from room ${roomId}`);
+  });
+
 
 });
 
