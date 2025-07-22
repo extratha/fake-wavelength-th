@@ -92,7 +92,7 @@ export default function MainScreen() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-6 h-full ">
       {error === 'missingProfile' && (
         <div className="text-red-600 mb-4 font-semibold">
           โปรดระบุชื่อก่อนเข้าห้อง
@@ -106,7 +106,7 @@ export default function MainScreen() {
       {isClueGiver ? (
         <div>คุณเป็น คนให้คำใบ้ !! 🎯</div>
       ) : (
-        <div>รอคำใบ้...</div>
+        <div>รับคำใบ้ และขยับเข็มให้ตรงกับคะแนน</div>
       )}
 
       <GameContent />

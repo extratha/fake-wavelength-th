@@ -53,7 +53,7 @@ const GameContent = () => {
   const clueGiverUser = gameState?.users?.find((user) => user.userId === gameState.clueGiver)
 
   return (
-    <div style={{ width: '100%', display: 'block', }}>
+    <div className="w-full block mt-4 " >
       <div style={{ width: '100%', display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
         <div style={{ padding: 20 }}>
           <h2>ห้อง: {roomId}</h2>

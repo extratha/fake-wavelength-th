@@ -64,7 +64,7 @@ const PlayersPanel = ({ users, hostId, isHost, clueGiver }: PlayersProps) => {
         <h3
           className="font-bold "
         >
-          ผู้เล่น
+          ผู้เล่น {users.length} คน 
         </h3>
         {
           expandPlayers ? <Image src={ChevronUp} alt="" style={{ color: 'white' }} /> : <Image src={ChevronDown} alt="" />

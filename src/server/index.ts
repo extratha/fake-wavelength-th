@@ -94,7 +94,10 @@ io.on("connection", (socket) => {
         users: new Map([[userId, user]]),
         state: {
           clueGiver: null,
-          scores: {},
+          scores: {
+            teamA: 0,
+            teamB: 0,
+          },
           promptPair: null,
           answerPosition: null,
           guessPosition: null,
@@ -290,6 +293,7 @@ io.on("connection", (socket) => {
     updateRoomState(roomId, room);
   });
 
+  // TODO adjust team score event
 
 });
 
