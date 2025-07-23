@@ -80,11 +80,12 @@ const PlayersPanel = ({ users, hostId, isHost, clueGiver }: PlayersProps) => {
                   onClick={() => handleClickPlayer(player)}
                   style={{ cursor: 'poniter', wordWrap: 'break-word' }}
                   className={`w-full text-left px-2 py-1 rounded hover:bg-playerHover ${player.userId === profile?.userId ? "font-medium" : ""}
-                  ${player.userId === profile.userId ? 'text-lightYellow' : ''}
+                  
                   `}
                 >
                   {player.name}{" "}
-                  {hostId === player.userId && <span>(Host)</span>}
+                  {player.userId === profile?.userId && <span className="mr-1">(คุณ)</span>}
+                  {hostId === player.userId && <span className="mr-1">(Host)</span>}
                   {clueGiver && (clueGiver === player.userId) && '🎯' }
                 </button>
                 {isHost && selectedPlayer && selectedPlayer.userId === player.userId && (

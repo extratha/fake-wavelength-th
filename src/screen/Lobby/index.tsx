@@ -181,9 +181,9 @@ export default function Lobby() {
 		} catch (error) {
 			console.log("Join Room Error : ", error)
 			setIsLoading(false)
-		} finally{
+		} finally {
 			setIsLoading(false)
-			
+
 		}
 	};
 
@@ -232,16 +232,17 @@ export default function Lobby() {
 					<Button onClick={joinRoom}>เข้าห้อง</Button>
 				</div>
 
+				<div className="flex flex-row mt-8 gap-2">
+					<p >ห้องที่มีอยู่: </p>
+					{availableRooms.map((room,index) => (
+						<p key={room}>{index!==0 ? ",": ''}{room}</p>
+					))}
+				</div>
 				{/* ✅ Modal แสดงข้อความ */}
 				<Modal
 					options={{ ...modalOptions, onClose: handleCloseModal } as ModalOptions}
 				/>
-			</div>
-			<div style={{ display: 'stack', flexDirection: 'column' }}>
-				<p>ห้องที่มีอยู่</p>
-				{availableRooms.map((room) => (
-					<p key={room}>{room}</p>
-				))}
+
 			</div>
 		</div>
 

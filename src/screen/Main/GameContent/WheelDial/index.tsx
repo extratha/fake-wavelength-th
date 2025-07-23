@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import clsx from 'clsx';
 import { socket } from '@/lib/socket'
-import { GameState } from '..';
+import { GameState, ScoreType } from '..';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import Image from 'next/image';
 
@@ -75,15 +75,21 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
     setIsPeekScreen(!peekScreen)
   }
 
-  const handleAdjustTeamScore= (type: '+' | "-" , team: string) => {
-    
+  const handleAdjustTeamScore = (type: '+' | "-", team: string) => {
+    socket.emit('updateTeamScore', {
+      roomId: gameState.roomId,
+      team,
+      score: 1,
+      method: type,
+    })
   }
 
-  const TEAM_SCORE_LABEL ={
+  type TeamKey = 'teamA' | 'teamB';
+  type TeamScoreLabelType = Record<TeamKey, string>;
+  const TEAM_SCORE_LABEL: TeamScoreLabelType = {
     teamA: 'TEAM A: ',
     teamB: 'TEAM B: '
-  } as Record<string,string>
-
+  }
   return (
     <div className="relative w-full p2">
       <div className="relative w-full max-w-[1200px] h-full aspect-square mx-auto ">
@@ -91,11 +97,17 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
         <div id="team-score" className="flex flex-row justify-between" >
           {gameState.scores && Object.keys(gameState.scores).map((team) => (
             <div id={team} key={team}>
-              <p className="text-center font-bold text-[32px]">{TEAM_SCORE_LABEL[team]} {gameState.scores[team] || 0}</p>
-              <div className="flex flex-row gap-10 text-darkBrown justify-center">
-                <button className="rounded-[20px] bg-lightYellow w-10 h-10 p-2 text-[16px]" onClick={()=>handleAdjustTeamScore('-', team)}>-</button>
-                <button className="rounded-[20px] bg-lightYellow w-10 h-10 p-2 text-[16px] font-medium" onClick={()=>handleAdjustTeamScore('+', team)}>+</button>
+              <div className="flex flex-row gap-2 items-center">
+                <p className={`text-${team} text-center font-bold text-[20px]`}>{TEAM_SCORE_LABEL[team as TeamKey]}</p>
+                <p className="text-center font-bold text-[32px]"> {gameState.scores[team as TeamKey] || 0}</p>
               </div>
+              {
+                isHost && <div className="flex flex-row gap-10 text-darkBrown justify-center">
+                  <button className="rounded-[20px] bg-lightYellow w-10 h-10 p-2 text-[16px]" onClick={() => handleAdjustTeamScore('-', team)}>-</button>
+                  <button className="rounded-[20px] bg-lightYellow w-10 h-10 p-2 text-[16px] font-medium" onClick={() => handleAdjustTeamScore('+', team)}>+</button>
+                </div>
+              }
+
             </div>
 
           ))}

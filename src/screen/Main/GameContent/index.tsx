@@ -7,10 +7,12 @@ import { socket } from "@/lib/socket";
 import PlayersPanel from "./PlayersPanel";
 import WheelDial from "./WheelDial";
 
+export type ScoreType = { teamA: number, teamB: number };
+
 export type GameState = {
   roomId: string;
   clueGiver: string | null;
-  scores: Record<string, number>;
+  scores: ScoreType;
   promptPair: [string, string] | null;
   answerPosition: number | null;
   guessPosition: number | null;
@@ -70,7 +72,7 @@ const GameContent = () => {
         <PlayersPanel users={gameState.users} hostId={gameState.hostId} isHost={isHost} clueGiver={gameState.clueGiver} />
       </div>
       <div className="w-full flex justify-center mt-[32px]">
-        <WheelDial gameState={gameState} /> 
+        <WheelDial gameState={gameState} />
       </div>
       <div>
       </div>

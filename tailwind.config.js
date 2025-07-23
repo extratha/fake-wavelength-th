@@ -14,6 +14,9 @@ module.exports = {
         mediumYellow: '#eec68aff',
 
         playerHover: '#2b211cff',
+
+        teamA: '#77BEF0',
+        teamB: '#EA5B6F'
       },
     },
   },

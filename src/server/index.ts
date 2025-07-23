@@ -20,10 +20,13 @@ const io = new Server(httpServer, {
 app.use(cors());
 app.use(express.json());
 
+type TeamKey = "teamA" | "teamB"
+type ScoreType = Record<TeamKey, number>
+
 type GameState = {
   roomId: string;
   clueGiver: string | null;
-  scores: Record<string, number>;
+  scores: ScoreType;
   promptPair: [string, string] | null;
   answerPosition: number | null;
   guessPosition: number | null;
@@ -76,11 +79,23 @@ function updateRoomState(roomId: string, room: RoomType) {
   io.to(roomId).emit("gameStateUpdate", gameStateWithUsers);
 }
 
+function setNewHost(roomId: string, userId: string) {
+  const room = rooms[roomId]
+  const newHost = room.users.get(userId)
+  if(!newHost) {
+    console.log("ERROR not found new host to update ")
+    return
+  }
+  room.hostId = newHost.userId;
+  io.to(roomId).emit("newHost", { userId: newHost.userId, name: newHost.name });
+  console.log("New host is : ", newHost.name)
+}
+
 io.on("connection", (socket) => {
 
   socket.on("getAvailableRooms", (callback) => {
     const availableRooms = Object.keys(rooms);
-    console.log('available rooms ', rooms)
+    console.log('Available rooms : ', availableRooms)
     callback(availableRooms);
   });
 
@@ -152,7 +167,7 @@ io.on("connection", (socket) => {
 
     updateRoomState(room, existingRoom)
 
-    console.log(`${name} (${userId}) joined room ${room}`);
+    console.log(`${name} (${userId}) "JOINED" room ${room}`);
   });
 
   socket.on("leaveRoom", ({ roomId, userId, name }) => {
@@ -161,17 +176,15 @@ io.on("connection", (socket) => {
 
     room.users.delete(userId);
     socket.leave(roomId);
-    console.log(`${userId} (${name}) left room ${roomId}`);
+    console.log(`${userId} (${name}) "LEFTED" room ${roomId}`);
 
-    socket.emit('forceLeftRoom')
+    // socket.emit('forceLeftRoom')
 
     // ถ้า host ออก ให้ตั้ง host ใหม่
     if (room.hostId === userId) {
       const users = Array.from(room.users.values()); if (users.length > 0) {
         const newHost = users[Math.floor(Math.random() * users.length)];
-        room.hostId = newHost.userId;
-        console.log('New host is ', newHost.name)
-        io.to(roomId).emit("newHost", { userId: newHost.userId, name: newHost.name });
+        setNewHost(roomId, newHost.userId)
       } else {
         room.hostId = "";
       }
@@ -238,8 +251,7 @@ io.on("connection", (socket) => {
       const remainingUsers = Array.from(room.users.values());
       if (remainingUsers.length > 0) {
         const newHost = remainingUsers[Math.floor(Math.random() * remainingUsers.length)];
-        room.hostId = newHost.userId;
-        io.to(roomId).emit("newHost", { userId: newHost.userId, name: newHost.name });
+        setNewHost(roomId, newHost.userId)
       } else {
         room.hostId = "";
       }
@@ -293,7 +305,19 @@ io.on("connection", (socket) => {
     updateRoomState(roomId, room);
   });
 
-  // TODO adjust team score event
+  socket.on('updateTeamScore', ({ roomId, team, score, method }) => {
+    const room = rooms[roomId]
+    if (!room) return
+
+    const teamType = team as TeamKey
+    const currentScore = room.state.scores[teamType]
+    room.state.scores[teamType] =
+      method === '+' ? currentScore + score : currentScore - score;
+
+    console.log('Score update at ', teamType , method , score , 'score')
+    updateRoomState(roomId, room);
+  })
+
 
 });
 
