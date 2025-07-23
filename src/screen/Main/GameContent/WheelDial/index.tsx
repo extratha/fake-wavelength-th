@@ -87,57 +87,58 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
 
   return (
     <div className="relative w-full p2">
-      <div className="relative w-full max-w-[1200px] h-full aspect-square mx-auto ">
-
+      <div className="relative w-[calc(100%-100px)] h-full max-w-[1200px] aspect-square mx-auto ">
         <div className="absolute left-0 top-[-4px] w-full h-3  bg-darkBrown"
           style={{ zIndex: 12 }}
         />
-        <div id="wheel" className="relative w-full h-full overflow-hidden border-4 border-[#4b352a]">
-          {/* Wheel Frame */}
-          <div className="absolute left-0 w-full"
-            style={{
-              zIndex: 11,
-            }}
-          >
-            <Image src={ImageChromeBasic} alt=""></Image>
+        
+          <div id="wheel" className="relative w-full h-full overflow-hidden border-4 border-[#4b352a]">
+            {/* Wheel Frame */}
+            <div className="absolute left-0 w-full"
+              style={{
+                zIndex: 11,
+              }}
+            >
+              <Image src={ImageChromeBasic} alt=""></Image>
+            </div>
+            <div id="hider" className="absolute top-1/2 left-0 w-full h-1/2 bg-darkBrown "
+              style={{ transform: 'translateY(-1px)', zIndex: 11 }}
+            />
+
+            {/* Wheel Screen */}
+            <div
+              id="wheelScreen"
+              className={clsx(
+                "absolute top-0 left-0 w-full  transition-transform duration-[3000ms] opacity-[0.6]",
+                gameState?.screenOpen ? "rotate-[180deg]" : "rotate-0",
+                peekScreen ? "opacity-0" : ""
+              )}
+              style={{ zIndex: 5 }}
+            >
+              <Image src={ImageWheelScreen} alt=""></Image>
+            </div>
+
+            {/* Wheel Marker */}
+            {isShowWheelMarker && <div
+              className="absolute top-0 left-0 w-full  p-1 flex items-center justify-center z-1"
+              style={{ transform: `rotate(${gameState.markerRotation}deg)` }}
+            >
+              <Image src={ImageWheelScore} alt="" ></Image>
+            </div>}
+
+            {/* Wheel Dial */}
+            <div
+              className="absolute top-0 left-0 w-full h-full z-10 transition-transform duration-300 "
+              style={{ transform: `rotate(${gameState.dialRotation}deg)`, scale: '2' }}
+            >
+              <Image src={ImageWheelDial} alt=""></Image>
+            </div>
+
           </div>
-          <div id="hider" className="absolute top-1/2 left-0 w-full h-1/2 bg-darkBrown "
-            style={{ transform: 'translateY(-1px)', zIndex: 11 }}
-          />
 
-          {/* Wheel Screen */}
-          <div
-            id="wheelScreen"
-            className={clsx(
-              "absolute top-0 left-0 w-full h-full transition-transform duration-[3000ms]",
-              gameState?.screenOpen ? "rotate-[180deg]" : "rotate-0",
-              peekScreen ? "opacity-0" : ""
-            )}
-            style={{ zIndex: 5 }}
-          >
-            <Image src={ImageWheelScreen} alt=""></Image>
-          </div>
-
-          {/* Wheel Marker */}
-          {isShowWheelMarker && <div
-            className="absolute top-0 left-0 w-full h-full p-1 flex items-center justify-center z-1"
-            style={{ transform: `rotate(${gameState.markerRotation}deg)` }}
-          >
-            <Image src={ImageWheelScore} alt="" ></Image>
-          </div>}
-
-          {/* Wheel Dial */}
-          <div
-            className="absolute top-0 left-0 w-full h-full z-10 transition-transform duration-300 "
-            style={{ transform: `rotate(${gameState.dialRotation}deg)`, scale: '2' }}
-          >
-            <Image src={ImageWheelDial} alt=""></Image>
-          </div>
-
-        </div>
 
         {/* Controls */}
-        <div className="absolute w-full z-20 top-[60%] left-0 mx-auto" >
+        <div className=" w-full z-20 top-[60%] left-0 mx-auto" >
           {
             isClueGiver && <div className="w-full  top-[50%] left-[-36%] sm:left-0 mx-auto flex justify-center z-50">
               <button onClick={handlePeekScreen} className="w-20 h-20  px-3 py-1 bg-lightYellow rounded-[300px] text-darkBrown font-medium">

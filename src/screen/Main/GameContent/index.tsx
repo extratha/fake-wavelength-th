@@ -14,6 +14,7 @@ export type GameState = {
   roomId: string;
   clueGiver: string | null;
   scores: ScoreType;
+  turn: TeamKey | null,
   promptPair: [string, string] | null;
   answerPosition: number | null;
   guessPosition: number | null;
@@ -81,7 +82,14 @@ const GameContent = () => {
 
       <TeamManagement gameState={gameState} isHost={isHost} />
 
-      <div className="w-full flex justify-center mt-[32px]">
+      <div className={`gradient-border w-full flex justify-center mt-[32px] p-2 
+         ${gameState.turn === 'teamA'
+          ? 'teamA-border-glow'
+          : gameState.turn === 'teamB'
+            ? 'teamB-border-glow'
+            : ''
+        }
+        `}>
         <WheelDial gameState={gameState} />
       </div>
       <div>

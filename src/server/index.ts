@@ -26,6 +26,7 @@ type ScoreType = Record<TeamKey, number>
 type GameState = {
   roomId: string;
   clueGiver: string | null;
+  turn: TeamKey | null;
   scores: ScoreType;
   promptPair: [string, string] | null;
   answerPosition: number | null;
@@ -113,6 +114,7 @@ io.on("connection", (socket) => {
             teamA: 0,
             teamB: 0,
           },
+          turn : null,
           promptPair: null,
           answerPosition: null,
           guessPosition: null,
@@ -316,6 +318,16 @@ io.on("connection", (socket) => {
 
     console.log('Score update at ', teamType, method, score, 'score')
     updateRoomState(roomId, room);
+  })
+
+  socket.on('setTurnOfTeam', ({roomId, team})=> {
+    const room = rooms[roomId]
+    if (!room) return
+
+    room.state.turn = team
+    console.log('Now is ', team ,"'s turn")
+    updateRoomState(roomId, room);
+    
   })
 
   socket.on('userUpdateThierTeam', ({ roomId, userId, team }) => {
