@@ -3,7 +3,7 @@
 import Button from "@/component/Button";
 import InputText from "@/component/InputText";
 import Modal, { ModalOptions } from "@/component/Modal";
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Socket } from "socket.io-client";
 import { socket } from '@/lib/socket'
 import profileImage from "../../assets/app-profile.png";
@@ -21,7 +21,7 @@ export default function Lobby() {
 	const router = useRouter()
 	const searchParams = useSearchParams()
 
-	const [room, setRoom] = useState("");
+	const [roomIdInput, setRoomIdInput] = useState("");
 	const [availableRooms, setAvailableRooms] = useState<string[]>([]);
 	const [isLoading, setIsLoading] = useState(false)
 	const [modalOptions, setModalOptions] = useState<ModalOptions>({
@@ -99,14 +99,14 @@ export default function Lobby() {
 				});
 				throw 'connecting'
 			}
-			if (!profile.userName.trim() || !room.trim()) {
+			if (!profile.userName.trim() || !roomIdInput.trim()) {
 				setModalOptions({
 					open: true,
 					message: 'กรุณากรอกชื่อและหมายเลขห้อง',
 				});
 				throw 'require_fields'
 			}
-			if (!roomPattern.test(room)) {
+			if (!roomPattern.test(roomIdInput)) {
 				setModalOptions({
 					open: true,
 					message: 'หมายเลขห้องต้องเป็นตัวอักษร A-Z ตัวเลข และขีดกลาง (-) เท่านั้น',
@@ -116,12 +116,13 @@ export default function Lobby() {
 
 			updateProfile({
 				...profile,
-				roomId: room,
+				roomId: roomIdInput,
 			})
-			socketRef.current.emit("createRoom", { room, name: profile.userName, userId: profile.userId }, (response: { success: boolean; message?: string }) => {
+
+			socketRef.current.emit("createRoom", { room: roomIdInput, name: profile.userName, userId: profile.userId }, (response: { success: boolean; message?: string }) => {
 				console.log("CreateRoom response:", response);
 				if (response.success) {
-					router.push(`/main?room=${room}`);
+					router.push(`/main?room=${roomIdInput}`);
 				} else {
 					setModalOptions({
 						open: true,
@@ -135,7 +136,7 @@ export default function Lobby() {
 		}
 	};
 
-	const joinRoom = () => {
+	const joinRoom = (roomIdProps?: string) => {
 		try {
 			setIsLoading(true)
 
@@ -146,7 +147,8 @@ export default function Lobby() {
 				});
 				throw 'connecting'
 			}
-			if (!profile.userName.trim() || !room.trim()) {
+
+			if (!profile.userName.trim() || (!roomIdInput.trim() && !roomIdProps)) {
 				setModalOptions({
 					open: true,
 					message: 'กรุณากรอกชื่อและหมายเลขห้อง',
@@ -154,7 +156,7 @@ export default function Lobby() {
 				throw 'require_fields'
 			}
 
-			if (!roomPattern.test(room)) {
+			if (!roomPattern.test(roomIdInput) && !roomIdProps) {
 				setModalOptions({
 					open: true,
 					message: 'หมายเลขห้องต้องเป็นตัวอักษร A-Z ตัวเลข และขีดกลาง (-) เท่านั้น',
@@ -162,15 +164,17 @@ export default function Lobby() {
 				throw 'validation_fields'
 			}
 
+			const roomId = roomIdInput || roomIdProps
+
 			updateProfile({
 				...profile,
-				roomId: room,
+				roomId,
 			})
 
-			socketRef.current.emit("joinRoom", { room, name: profile.userName, userId: profile.userId }, (response: { success: boolean; message?: string }) => {
+			socketRef.current.emit("joinRoom", { room: roomId, name: profile.userName, userId: profile.userId }, (response: { success: boolean; message?: string }) => {
 				console.log("Join room response:", response);
 				if (response.success) {
-					router.push(`/main?room=${room}`);
+					router.push(`/main?room=${roomId}`);
 				} else {
 					setModalOptions({
 						open: true,
@@ -190,6 +194,10 @@ export default function Lobby() {
 	const handleCloseModal = () => {
 		setModalOptions(prev => ({ ...prev, open: false }));
 	};
+
+	const handleClickRoom = () => {
+
+	}
 
 	if (isLoading) return <FullScreenLoading />
 
@@ -216,8 +224,8 @@ export default function Lobby() {
 				/>
 				<InputText
 					placeholder="หมายเลขห้อง"
-					value={room}
-					onChange={(e) => setRoom(e.target.value)}
+					value={roomIdInput}
+					onChange={(e) => setRoomIdInput(e.target.value)}
 					style={{ width: "100%", marginBottom: 10, padding: 8 }}
 				/>
 				<div
@@ -226,16 +234,22 @@ export default function Lobby() {
 						flexDirection: "row",
 						gap: "16px",
 						justifyContent: "space-between",
+						alignItems: 'center'
 					}}
 				>
 					<Button onClick={createRoom}>สร้างห้อง</Button>
-					<Button onClick={joinRoom}>เข้าห้อง</Button>
+					หรือ
+					<Button onClick={() => joinRoom()}>เข้าห้อง</Button>
 				</div>
 
-				<div className="flex flex-row mt-8 gap-2">
+				<div className="flex flex-row mt-8 gap-2 items-center">
 					<p >ห้องที่มีอยู่: </p>
-					{availableRooms.map((room,index) => (
-						<p key={room}>{index!==0 ? ",": ''}{room}</p>
+					{availableRooms.map((room, index) => (
+						<React.Fragment key={index}>
+							<p key={room} className="min-w-8 min-h-8 p-1 cursor-pointer text-center rounded-[50px] hover:bg-mediumBrown"
+								onClick={() => joinRoom(room)} >{room}</p>
+							{availableRooms[index + 1] ? <>|</> : ''}
+						</React.Fragment>
 					))}
 				</div>
 				{/* ✅ Modal แสดงข้อความ */}

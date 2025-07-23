@@ -6,6 +6,7 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { socket } from "@/lib/socket";
 import PlayersPanel from "./PlayersPanel";
 import WheelDial from "./WheelDial";
+import TeamManagement, { TeamKey } from "./TeamManagement";
 
 export type ScoreType = { teamA: number, teamB: number };
 
@@ -19,7 +20,7 @@ export type GameState = {
   clue: string | null;
   teamA: string[];
   teamB: string[];
-  users: { userId: string; name: string }[];
+  users: { userId: string; name: string, team?: string }[];
   hostId: string;
   dialRotation: number;
   screenOpen: boolean;
@@ -53,13 +54,19 @@ const GameContent = () => {
   if (!gameState) return <p>Loading game...</p>;
 
   const clueGiverUser = gameState?.users?.find((user) => user.userId === gameState.clueGiver)
+  const teamColor = (team?: TeamKey) => (team === 'teamA' ? 'text-teamA' : team === "teamB" ? 'text-teamB' : 'white')
 
   return (
     <div className="w-full block mt-4 " >
       <div style={{ width: '100%', display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
-        <div style={{ padding: 20 }}>
+        <div >
           <h2>ห้อง: {roomId}</h2>
-          <p>ผู้ให้คำใบ้: {clueGiverUser?.name || ''}</p>
+          <div >
+            <p className="inline">ผู้ให้คำใบ้: </p>
+            <p className={`inline font-medium ${teamColor(clueGiverUser?.team as TeamKey)}`}>
+              {clueGiverUser?.name || ''}
+            </p>
+          </div>
 
 
           {gameState.clue && <p>คำใบ้: {gameState.clue}</p>}
@@ -71,6 +78,9 @@ const GameContent = () => {
         </div>
         <PlayersPanel users={gameState.users} hostId={gameState.hostId} isHost={isHost} clueGiver={gameState.clueGiver} />
       </div>
+
+      <TeamManagement gameState={gameState} isHost={isHost} />
+
       <div className="w-full flex justify-center mt-[32px]">
         <WheelDial gameState={gameState} />
       </div>

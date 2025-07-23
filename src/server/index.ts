@@ -33,7 +33,7 @@ type GameState = {
   clue: string | null;
   teamA: string[];
   teamB: string[];
-  users: { userId: string; name: string }[];
+  users: { userId: string; name: string, team?: string }[];
   hostId: string;
   dialRotation: number;
   screenOpen: boolean;
@@ -41,7 +41,7 @@ type GameState = {
 };
 
 type RoomType = {
-  users: Map<string, { name: string; userId: string }>;
+  users: Map<string, { name: string; userId: string; team?: string }>;
   state: GameState;
   hostId: string
 }
@@ -82,7 +82,7 @@ function updateRoomState(roomId: string, room: RoomType) {
 function setNewHost(roomId: string, userId: string) {
   const room = rooms[roomId]
   const newHost = room.users.get(userId)
-  if(!newHost) {
+  if (!newHost) {
     console.log("ERROR not found new host to update ")
     return
   }
@@ -314,8 +314,69 @@ io.on("connection", (socket) => {
     room.state.scores[teamType] =
       method === '+' ? currentScore + score : currentScore - score;
 
-    console.log('Score update at ', teamType , method , score , 'score')
+    console.log('Score update at ', teamType, method, score, 'score')
     updateRoomState(roomId, room);
+  })
+
+  socket.on('userUpdateThierTeam', ({ roomId, userId, team }) => {
+    const room = rooms[roomId]
+    if (!room) return
+
+    const user = room.users.get(userId)
+    if (!user) {
+      console.log('Cannot update team. Not found user')
+      return
+    }
+
+    user.team = team
+    updateRoomState(roomId, room)
+    console.log(`${user.name} has joined ${team === 'teamA' ? 'TEAM A' : 'TEAM B'}. `)
+  })
+
+  socket.on('randomizeTeam', ({ roomId }) => {
+    const room = rooms[roomId]
+    if (!room) return
+
+    const users = Array.from(room.users.values())
+    if (users.length === 0) return
+
+    // สุ่มผู้เล่นทั้งหมด
+    const shuffledUsers = users.sort(() => Math.random() - 0.5)
+
+    let teamA: typeof users = []
+    let teamB: typeof users = []
+
+    if (users.length === 1) {
+      // ถ้ามีคนเดียว สุ่มลงทีมใดทีมหนึ่ง
+      if (Math.random() < 0.5) teamA.push(shuffledUsers[0])
+      else teamB.push(shuffledUsers[0])
+    } else {
+      // ถ้ามีมากกว่า 1 คน แบ่งให้ทั้ง 2 ทีมมีอย่างน้อย 1 คน
+      const mid = Math.floor(shuffledUsers.length / 2)
+
+      // ถ้า 2 คน: A = 1, B = 1
+      // ถ้า 3 คน: A = 1, B = 2
+      // ถ้า 4 คน: A = 2, B = 2
+      teamA = shuffledUsers.slice(0, mid)
+      teamB = shuffledUsers.slice(mid)
+
+      // แก้กรณีพิเศษ ถ้า mid = 0 เช่นกรณี users.length = 2 แล้ว Math.floor(1) = 0
+      if (teamA.length === 0) {
+        teamA.push(teamB.pop()!) // ดึง 1 คนจาก B ไป A
+      }
+    }
+
+    // ตั้งค่า team ใหม่ให้ผู้เล่น
+    for (const user of teamA) {
+      user.team = 'teamA'
+    }
+    for (const user of teamB) {
+      user.team = 'teamB'
+    }
+
+    updateRoomState(roomId, room)
+
+    console.log(`[Room ${roomId}] Teams randomized: ${teamA.map(u => u.name).join(', ')} → TEAM A | ${teamB.map(u => u.name).join(', ')} → TEAM B`)
   })
 
 

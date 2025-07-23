@@ -1,6 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 :root {
   --background: #4B352A;
   --foreground: #ffffff;
@@ -26,6 +27,50 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-.clip-half-circle {
-  clip-path: polygon(0 0, 100% 0, 100% 50%, 0 50%);
+.animated-border-button {
+  position: relative;
+  z-index: 0;
+  overflow: hidden;
+  border-radius: 0.5rem;
+}
+
+.animated-border-button::before {
+  content: "";
+  position: absolute;
+  inset: 0px 4px;
+  background: linear-gradient(135deg, #facc15, #f97316, #facc15);
+  /* loop gradient */
+  background-size: 300% 300%;
+  /* ขยาย gradient ให้มีพื้นที่เลื่อน */
+  background-position: 0% 0%;
+  animation: borderMove 3s linear infinite;
+  z-index: -1;
+  border-radius: inherit;
+}
+
+.animated-border-button>* {
+  position: relative;
+  z-index: 1;
+  background-color: #f0f2bd;
+  /* lightYellow */
+  border-radius: 0.2rem;
+  padding: 2px 4px
+}
+
+@keyframes borderMove {
+  0% {
+    background-position: 0% 0%;
+  }
+
+  50% {
+    background-position: 100% 100%;
+  }
+
+  100% {
+    background-position: 0% 0%;
+  }
+}
+
+button:active{
+  scale:0.97
 }

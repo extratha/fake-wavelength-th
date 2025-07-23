@@ -33,10 +33,6 @@ export default function MainScreen() {
   };
 
   useEffect(() => {
-    if (!profile?.roomId) {
-      router.replace('/lobby?error=ไม่พบห้อง')
-      return
-    }
     if (!profile.userName) {
       router.replace('/lobby?error=กรุณาตั้งชื่อ')
       return
@@ -77,13 +73,19 @@ export default function MainScreen() {
 
     window.addEventListener("beforeunload", leaveRoomOnUnload);
 
-
     return () => {
       socket.off("newHost", handleNewHost);
       window.removeEventListener("beforeunload", leaveRoomOnUnload);
     };
     //eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileReady, profile]);
+
+  
+  useEffect(()=>{
+    if(socket.connected === false) {
+      router.replace("/lobby?error=การเชื่อมต่อกับ server ล้มเหลว")
+    }
+  },[socket])
 
   if (!profileReady || !profile) return <div>กำลังโหลดข้อมูลผู้เล่น...</div>;
 

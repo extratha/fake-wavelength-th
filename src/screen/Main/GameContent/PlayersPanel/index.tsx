@@ -6,6 +6,7 @@ import Image from "next/image";
 import ChevronUp from '@/assets/chevron-up.svg';
 import ChevronDown from '@/assets/chevron-down.svg'
 import {  useState } from "react";
+import { TeamKey } from "../TeamManagement";
 
 type Player = {
   userId: string;
@@ -13,7 +14,7 @@ type Player = {
 };
 
 type PlayersProps = {
-  users: { userId: string; name: string }[];
+  users: { userId: string; name: string, team?:string }[];
   hostId: string;
   isHost: boolean;
   clueGiver: string|null;
@@ -50,8 +51,9 @@ const PlayersPanel = ({ users, hostId, isHost, clueGiver }: PlayersProps) => {
       return
     }
     setSelectedPlayer(null)
-
   }
+
+  const teamColor = (team?: TeamKey) => (team === 'teamA' ? 'text-teamA' : team==="teamB"? 'text-teamB' : 'white')
 
   if (!users) return <div>กำลังโหลดผู้เล่น</div>
 
@@ -80,7 +82,7 @@ const PlayersPanel = ({ users, hostId, isHost, clueGiver }: PlayersProps) => {
                   onClick={() => handleClickPlayer(player)}
                   style={{ cursor: 'poniter', wordWrap: 'break-word' }}
                   className={`w-full text-left px-2 py-1 rounded hover:bg-playerHover ${player.userId === profile?.userId ? "font-medium" : ""}
-                  
+                    ${teamColor(player.team as TeamKey)}
                   `}
                 >
                   {player.name}{" "}
@@ -115,9 +117,7 @@ const PlayersPanel = ({ users, hostId, isHost, clueGiver }: PlayersProps) => {
                   </div>
                 )}
               </div>
-
             </div>
-
           ))}
         </>
       }
