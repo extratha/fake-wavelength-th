@@ -42,7 +42,7 @@ export default function MainScreen() {
 
     // ✅ Emit joinRoom หลัง profile พร้อม
     socket.emit("joinRoom", {
-      room: profile.roomId,
+      roomId: profile.roomId,
       userId: profile.userId,
       name: profile.userName,
     }, (response: { success: boolean; currentHostId?: string }) => {

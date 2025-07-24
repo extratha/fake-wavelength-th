@@ -5,7 +5,7 @@ import { socket } from "@/lib/socket";
 import Image from "next/image";
 import ChevronUp from '@/assets/chevron-up.svg';
 import ChevronDown from '@/assets/chevron-down.svg'
-import {  useState } from "react";
+import React, { useState } from "react";
 import { TeamKey } from "../TeamManagement";
 
 type Player = {
@@ -14,10 +14,10 @@ type Player = {
 };
 
 type PlayersProps = {
-  users: { userId: string; name: string, team?:string }[];
+  users: { userId: string; name: string, team?: string }[];
   hostId: string;
   isHost: boolean;
-  clueGiver: string|null;
+  clueGiver: string | null;
 }
 
 const PlayersPanel = ({ users, hostId, isHost, clueGiver }: PlayersProps) => {
@@ -25,7 +25,7 @@ const PlayersPanel = ({ users, hostId, isHost, clueGiver }: PlayersProps) => {
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [expandPlayers, setExpandPlayers] = useState(false)
 
-  const handleOption = (action: "clueGiver" | "kick") => {
+  const handleOption = (action: "clueGiver" | "kick" | "assignHost", playerId?: string) => {
     if (!selectedPlayer || !profile?.roomId) return;
 
     if (action === "clueGiver") {
@@ -35,10 +35,18 @@ const PlayersPanel = ({ users, hostId, isHost, clueGiver }: PlayersProps) => {
       });
     }
 
+    if (action === 'assignHost') {
+      socket.emit('assignHost', {
+        roomId: profile.roomId,
+        userId: selectedPlayer.userId,
+        targetToHostId: playerId
+      })
+    }
+
     if (action === "kick") {
       socket.emit("kickUser", {
         roomId: profile.roomId,
-        userId: selectedPlayer.userId,
+        userId: selectedPlayer.userId
       });
     }
 
@@ -53,7 +61,7 @@ const PlayersPanel = ({ users, hostId, isHost, clueGiver }: PlayersProps) => {
     setSelectedPlayer(null)
   }
 
-  const teamColor = (team?: TeamKey) => (team === 'teamA' ? 'text-teamA' : team==="teamB"? 'text-teamB' : 'white')
+  const teamColor = (team?: TeamKey) => (team === 'teamA' ? 'text-teamA' : team === "teamB" ? 'text-teamB' : 'white')
 
   if (!users) return <div>กำลังโหลดผู้เล่น</div>
 
@@ -66,7 +74,7 @@ const PlayersPanel = ({ users, hostId, isHost, clueGiver }: PlayersProps) => {
         <h3
           className="font-bold "
         >
-          ผู้เล่น {users.length} คน 
+          ผู้เล่น {users.length} คน
         </h3>
         {
           expandPlayers ? <Image src={ChevronUp} alt="" style={{ color: 'white' }} /> : <Image src={ChevronDown} alt="" />
@@ -88,7 +96,7 @@ const PlayersPanel = ({ users, hostId, isHost, clueGiver }: PlayersProps) => {
                   {player.name}{" "}
                   {player.userId === profile?.userId && <span className="mr-1">(คุณ)</span>}
                   {hostId === player.userId && <span className="mr-1">(Host)</span>}
-                  {clueGiver && (clueGiver === player.userId) && '🎯' }
+                  {clueGiver && (clueGiver === player.userId) && '🎯'}
                 </button>
                 {isHost && selectedPlayer && selectedPlayer.userId === player.userId && (
                   <div className=" p-2 border-t shadow ">
@@ -101,12 +109,23 @@ const PlayersPanel = ({ users, hostId, isHost, clueGiver }: PlayersProps) => {
                     >
                       🎯 กำหนดเป็นคนให้คำใบ้
                     </button>
-                    {player.userId !== hostId && <button
-                      onClick={() => handleOption("kick")}
-                      className="text-[14px] block w-full text-left px-3 py-1 hover:bg-palyerHover text-white"
-                    >
-                      ❌ เตะออกจากห้อง
-                    </button>}
+                    {player.userId !== hostId &&
+                      (
+                        <React.Fragment>
+                          <button
+                            onClick={() => handleOption("assignHost",player.userId)}
+                            className="text-[14px] block w-full text-left px-3 py-1 hover:bg-palyerHover text-white"
+                          >
+                            👑 กำหนดเป็น Host
+                          </button>
+                          <button
+                            onClick={() => handleOption("kick")}
+                            className="text-[14px] block w-full text-left px-3 py-1 hover:bg-palyerHover text-white"
+                          >
+                            ❌ เตะออกจากห้อง
+                          </button>
+                        </React.Fragment>
+                      )}
 
                     <button
                       onClick={() => setSelectedPlayer(null)}

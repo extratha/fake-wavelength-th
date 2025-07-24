@@ -82,14 +82,16 @@ const GameContent = () => {
 
       <TeamManagement gameState={gameState} isHost={isHost} />
 
-      <div className={`gradient-border w-full flex justify-center mt-[32px] p-2 
+      <div
+        className={`gradient-border w-full flex justify-center mt-[32px] p-2 
          ${gameState.turn === 'teamA'
-          ? 'teamA-border-glow'
-          : gameState.turn === 'teamB'
-            ? 'teamB-border-glow'
-            : ''
+            ? 'teamA-border-glow'
+            : gameState.turn === 'teamB'
+              ? 'teamB-border-glow'
+              : ''
+          }`
         }
-        `}>
+      >
         <WheelDial gameState={gameState} />
       </div>
       <div>

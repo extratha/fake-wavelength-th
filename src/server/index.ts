@@ -29,6 +29,7 @@ type GameState = {
   turn: TeamKey | null;
   scores: ScoreType;
   promptPair: [string, string] | null;
+  usedPromptPair: [string, string] | null;
   answerPosition: number | null;
   guessPosition: number | null;
   clue: string | null;
@@ -114,8 +115,9 @@ io.on("connection", (socket) => {
             teamA: 0,
             teamB: 0,
           },
-          turn : null,
+          turn: null,
           promptPair: null,
+          usedPromptPair:null,
           answerPosition: null,
           guessPosition: null,
           clue: null,
@@ -143,23 +145,23 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("joinRoom", ({ room, userId, name }, callback) => {
-    cancelRoomDeletion(room)
+  socket.on("joinRoom", ({ roomId, userId, name }, callback) => {
+    console.log('joining', roomId)
+    cancelRoomDeletion(roomId)
 
-    const existingRoom = rooms[room];
+    const existingRoom = rooms[roomId];
     if (!existingRoom) {
       if (callback) callback({ success: false, message: "ห้องนี้ไม่มีในระบบ" });
       return;
     }
 
     existingRoom.users.set(userId, { name, userId });
-    socket.join(room);
+    socket.join(roomId);
     socket.userId = userId;
 
     if (existingRoom.users.size === 1) {
-      existingRoom.hostId = userId;
-      io.to(room).emit("newHost", { userId, name });
-      console.log(`⚡ ${name} (${userId}) is now host in room ${room}`);
+      setNewHost(roomId, userId)
+      console.log(`⚡ ${name} (${userId}) is now host in room ${roomId}`);
     }
 
     if (callback) callback({
@@ -167,10 +169,21 @@ io.on("connection", (socket) => {
       currentHostId: existingRoom.hostId
     });
 
-    updateRoomState(room, existingRoom)
+    updateRoomState(roomId, existingRoom)
 
-    console.log(`${name} (${userId}) "JOINED" room ${room}`);
+    console.log(`${name} (${userId}) "JOINED" room ${roomId}`);
   });
+
+  socket.on('assignHost', ({ roomId, userId, targetToHostId }) => {
+    const room = rooms[roomId];
+    if (!room) return;
+
+    const targetToHost = room.users.get(targetToHostId)
+    if (!targetToHost) return;
+    setNewHost(roomId, targetToHostId)
+    updateRoomState(roomId, room)
+    console.log(`${userId} has set ${targetToHost.name} to HOST `)
+  })
 
   socket.on("leaveRoom", ({ roomId, userId, name }) => {
     const room = rooms[roomId];
@@ -320,14 +333,14 @@ io.on("connection", (socket) => {
     updateRoomState(roomId, room);
   })
 
-  socket.on('setTurnOfTeam', ({roomId, team})=> {
+  socket.on('setTurnOfTeam', ({ roomId, team }) => {
     const room = rooms[roomId]
     if (!room) return
 
     room.state.turn = team
-    console.log('Now is ', team ,"'s turn")
+    console.log('Now is ', team, "'s turn")
     updateRoomState(roomId, room);
-    
+
   })
 
   socket.on('userUpdateThierTeam', ({ roomId, userId, team }) => {

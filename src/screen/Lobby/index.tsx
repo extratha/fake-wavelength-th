@@ -171,7 +171,7 @@ export default function Lobby() {
 				roomId,
 			})
 
-			socketRef.current.emit("joinRoom", { room: roomId, name: profile.userName, userId: profile.userId }, (response: { success: boolean; message?: string }) => {
+			socketRef.current.emit("joinRoom", {   roomId, name: profile.userName, userId: profile.userId }, (response: { success: boolean; message?: string }) => {
 				console.log("Join room response:", response);
 				if (response.success) {
 					router.push(`/main?room=${roomId}`);

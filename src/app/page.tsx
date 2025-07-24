@@ -6,11 +6,11 @@ export default function Page() {
   const router = useRouter()
   useEffect(()=> {
     router.replace('/lobby')
-  },[router])
+  },[])
   return (
     <Suspense fallback={<div>กำลังโหลด...</div>}>
       <div >
-        กำลังโหลด...
+        กำลังโหลด..
       </div>
     </Suspense>)
 }
