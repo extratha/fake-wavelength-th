@@ -85,6 +85,7 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
 
   useEffect(() => {
     if (wheelScreen) setIsShowWheelMarker(wheelScreen && wheelHeight ? true : false)
+      // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wheelScreen])
 
   useEffect(() => {

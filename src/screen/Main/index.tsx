@@ -85,6 +85,7 @@ export default function MainScreen() {
     if(socket.connected === false) {
       router.replace("/lobby?error=การเชื่อมต่อกับ server ล้มเหลว")
     }
+    //eslint-disable-next-line react-hooks/exhaustive-deps
   },[socket])
 
   if (!profileReady || !profile) return <div>กำลังโหลดข้อมูลผู้เล่น...</div>;

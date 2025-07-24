@@ -195,10 +195,6 @@ export default function Lobby() {
 		setModalOptions(prev => ({ ...prev, open: false }));
 	};
 
-	const handleClickRoom = () => {
-
-	}
-
 	if (isLoading) return <FullScreenLoading />
 
 	return (

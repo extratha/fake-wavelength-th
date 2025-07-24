@@ -10,7 +10,7 @@ type TeamManagementProps = {
 export type TeamKey = 'teamA' | 'teamB';
 
 const TeamManagement = ({ gameState, isHost }: TeamManagementProps) => {
-  const { profile, updateProfile } = useUserProfile()
+  const { profile } = useUserProfile()
 
   type TeamScoreLabelType = Record<TeamKey, string>;
   const TEAM_SCORE_LABEL: TeamScoreLabelType = {
