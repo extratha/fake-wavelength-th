@@ -38,7 +38,7 @@ export default function MainScreen() {
       return
     }
 
-    if (!profileReady ||  !profile?.userId) return;
+    if (!profileReady || !profile?.userId) return;
 
     // ✅ Emit joinRoom หลัง profile พร้อม
     socket.emit("joinRoom", {
@@ -80,13 +80,24 @@ export default function MainScreen() {
     //eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileReady, profile]);
 
-  
-  useEffect(()=>{
-    if(socket.connected === false) {
+  useEffect(() => {
+    const handleConnect = () => {
+      console.log('Connected to server');
+    };
+
+    const handleConnectError = () => {
       router.replace("/lobby?error=การเชื่อมต่อกับ server ล้มเหลว")
-    }
-    //eslint-disable-next-line react-hooks/exhaustive-deps
-  },[socket])
+    };
+
+    socket.on("connect", handleConnect);
+    socket.on("connect_error", handleConnectError);
+
+    return () => {
+      socket.off("connect", handleConnect);
+      socket.off("connect_error", handleConnectError);
+    };
+  }, []);
+
 
   if (!profileReady || !profile) return <div>กำลังโหลดข้อมูลผู้เล่น...</div>;
 

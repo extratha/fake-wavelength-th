@@ -15,7 +15,7 @@ export type GameState = {
   clueGiver: string | null;
   scores: ScoreType;
   turn: TeamKey | null,
-  promptPair: [string, string] | null;
+  pairWords: [string, string] | null;
   answerPosition: number | null;
   guessPosition: number | null;
   clue: string | null;
@@ -71,8 +71,8 @@ const GameContent = () => {
 
 
           {gameState.clue && <p>คำใบ้: {gameState.clue}</p>}
-          {gameState.promptPair && (
-            <p>หัวข้อ: {gameState.promptPair[0]} ←→ {gameState.promptPair[1]}</p>
+          {gameState.pairWords && (
+            <p>หัวข้อ: {gameState.pairWords[0]} ←→ {gameState.pairWords[1]}</p>
           )}
 
           {/* 🔄 แสดงหน้าปัด, ปุ่มใบ้, ปุ่มเดา ฯลฯ ตรงนี้ */}

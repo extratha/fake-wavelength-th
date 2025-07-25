@@ -39,7 +39,7 @@ body {
   content: "";
   position: absolute;
   inset: 0px 4px;
-  background: linear-gradient(135deg, #facc15, #f97316, #facc15);
+  background: linear-gradient(135deg, #d1a908, #c55505, #d1a908);
   /* loop gradient */
   background-size: 300% 300%;
   /* ขยาย gradient ให้มีพื้นที่เลื่อน */
@@ -52,8 +52,8 @@ body {
 .animated-border-button>* {
   position: relative;
   z-index: 1;
-  background-color: #f0f2bd;
-  /* lightYellow */
+  color: 'white';
+  /* lightBrown */
   border-radius: 0.2rem;
   padding: 2px 4px
 }
@@ -78,6 +78,7 @@ button:active {
 
 .gradient-border {
   position: relative;
+  color: 'white';
   z-index: 100;
 }
 

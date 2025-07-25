@@ -84,8 +84,13 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
   }
 
   useEffect(() => {
-    if (wheelScreen) setIsShowWheelMarker(wheelScreen && wheelHeight ? true : false)
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    if (wheelScreen) {
+      setTimeout(() => {
+        setIsShowWheelMarker(wheelScreen && wheelHeight ? true : false)
+      }, 2000)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wheelScreen])
 
   useEffect(() => {
@@ -94,7 +99,7 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
         console.log(wheelWrapRef.current.clientHeight / 2, wheelWrapRef.current.clientWidth)
         if (wheelWrapRef.current.clientWidth > 250) {
           setWheelHeight(`${wheelWrapRef.current.clientHeight / 2}px`)
-        }else {
+        } else {
           setWheelHeight('100%')
         }
       }
@@ -129,27 +134,31 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
           >
             <Image src={ImageChromeBasic} alt=""></Image>
           </div>
-          <div id="hider" ref={wheelWrapRef} className="absolute bottom-[-2px] left-0 w-full h-[5px] bg-darkBrown "
+          {/* <div id="hider" ref={wheelWrapRef} className="absolute bottom-[-2px] left-0 w-full h-[5px] bg-darkBrown "
             style={{ transform: 'translateY(-1px)', zIndex: 11 }}
-          />
+          /> */}
 
           {/* Wheel Screen */}
           <div
             id="wheelScreen"
             className={clsx(
-              "absolute left-0 w-full translate-y-[10px] transition-transform duration-[3000ms] scale-[1.1]",
+              "absolute left-0 w-full translate-y-[2px] transition-transform duration-[3000ms] ",
               gameState?.screenOpen ? "rotate-[180deg]" : "rotate-0",
               peekScreen ? "opacity-0" : ""
             )}
-            style={{ zIndex: 5 }}
+            style={{ zIndex: 5, scale: '1 1.02' }}
           >
             <Image src={ImageWheelScreen} alt=""></Image>
           </div>
 
           {/* Wheel Marker */}
           {isShowWheelMarker && <div
-            className="absolute top-0 left-0 w-full  p-1 flex items-center justify-center z-1 scale-[0.9]"
-            style={{ transform: `rotate(${gameState.markerRotation}deg)`,zIndex:1 }}
+            className="absolute top-0 left-0 w-full  p-1 flex items-center justify-center z-1 scale-[0.8] "
+            style={{
+              transform: `rotate(${gameState.markerRotation}deg) `,
+              zIndex: 1,
+              opacity: !gameState?.screenOpen &&  !isHost && !isClueGiver ? 0 : 1
+            }}
           >
             <Image src={ImageWheelScore} alt="" ></Image>
           </div>}
@@ -168,7 +177,7 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
         <div ref={wheelControl} className=" w-full z-20 left-0 sm:mt-20 mx-auto" >
           {
             isClueGiver && <div className="w-full  top-[50%] left-[-36%] sm:left-0 mx-auto flex justify-center z-50">
-              <button onClick={handlePeekScreen} className="w-20 h-20  px-3 py-1 bg-lightYellow rounded-[300px] text-darkBrown font-medium">
+              <button onClick={handlePeekScreen} className="w-20 h-20  px-3 py-1 bg-lightBrown rounded-[300px] text-darkBrown font-medium">
                 {peekScreen ? "ซ่อนคะแนน" : "แง้มดูคะแนน"}
               </button>
             </div>
@@ -178,20 +187,20 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
             style={{ zIndex: '10' }}
           >
             {(isClueGiver || isHost) &&
-              <button onClick={randomizeMarker} className="h-10 px-3 py-1 bg-lightYellow rounded-lg max-w-40 font-medium ">สุ่มหมุนคะแนน</button>
+              <button onClick={randomizeMarker} className="h-10 px-3 py-1 bg-lightBrown rounded-lg max-w-40 font-medium ">สุ่มหมุนคะแนน</button>
 
             }
             <div className="flex gap-2 items-center">
-              <button onClick={() => rotateDial(-10)} className="w-10 h-10 px-3 py-1 bg-lightYellow rounded-[50px]">-</button>
-              <button onClick={() => rotateDial(-1)} className="w-8 h-8 px-3 py-1 bg-lightYellow rounded-[50px]">-</button>
-              <button onClick={() => rotateDial(1)} className="w-8 h-8 px-3 py-1 bg-lightYellow rounded-[50px] font-medium">+</button>
-              <button onClick={() => rotateDial(10)} className="w-10 h-10 px-3 py-1 bg-lightYellow rounded-[50px] font-medium">+</button>
+              <button onClick={() => rotateDial(-10)} className="w-10 h-10 px-3 py-1 bg-lightBrown rounded-[50px]">-</button>
+              <button onClick={() => rotateDial(-1)} className="w-8 h-8 px-3 py-1 bg-lightBrown rounded-[50px]">-</button>
+              <button onClick={() => rotateDial(1)} className="w-8 h-8 px-3 py-1 bg-lightBrown rounded-[50px] font-medium">+</button>
+              <button onClick={() => rotateDial(10)} className="w-10 h-10 px-3 py-1 bg-lightBrown rounded-[50px] font-medium">+</button>
             </div>
 
             {(isClueGiver || isHost) && (
               <button
                 onClick={toggleScreen}
-                className="animated-border-button h-10 px-3 py-1 max-w-40 font-medium"
+                className="animated-border-button h-10 px-3 py-1 max-w-40 font-medium text-white"
               >
                 <p>{gameState?.screenOpen ? "ซ่อนคะแนน" : "เปิดคะแนนให้ทุกคน"}</p>
               </button>

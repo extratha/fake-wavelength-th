@@ -10,7 +10,7 @@ module.exports = {
         darkBrown: '#4b352a',
         mediumBrown: '#ca7842',
         darkBlue: '#2cd9cf',
-        lightYellow: '#f0f2bd',
+        lightBrown: '#fae2bdff',
         mediumYellow: '#eec68aff',
 
         playerHover: '#2b211cff',

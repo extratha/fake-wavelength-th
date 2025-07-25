@@ -23,13 +23,17 @@ app.use(express.json());
 type TeamKey = "teamA" | "teamB"
 type ScoreType = Record<TeamKey, number>
 
+type PairWord = {
+  words: [string, string];
+  used: boolean;
+};
+
 type GameState = {
   roomId: string;
   clueGiver: string | null;
   turn: TeamKey | null;
   scores: ScoreType;
-  promptPair: [string, string] | null;
-  usedPromptPair: [string, string] | null;
+  pairWords: PairWord | null;
   answerPosition: number | null;
   guessPosition: number | null;
   clue: string | null;
@@ -116,8 +120,7 @@ io.on("connection", (socket) => {
             teamB: 0,
           },
           turn: null,
-          promptPair: null,
-          usedPromptPair:null,
+          pairWords: null,
           answerPosition: null,
           guessPosition: null,
           clue: null,

@@ -46,7 +46,9 @@ const TeamManagement = ({ gameState, isHost }: TeamManagementProps) => {
     socket.emit('randomizeTeam', { roomId: gameState.roomId })
   }
 
-  const teamColor = (team: TeamKey) => (team === 'teamA' ? 'text-teamA' : 'text-teamB')
+  const teamFontColor = (team: TeamKey) => (team === 'teamA' ? 'text-teamA' : 'text-teamB')
+  const teamBgColor = (team: TeamKey) => (team === 'teamA' ? 'bg-teamA' : 'bg-teamB')
+
 
   const thisPlayerFromGameState = gameState.users.find((user) => user.userId === profile.userId)
 
@@ -56,7 +58,7 @@ const TeamManagement = ({ gameState, isHost }: TeamManagementProps) => {
         {gameState.scores && Object.keys(gameState.scores).map((team, index) => (
           <React.Fragment key={index}>
             <div id={team} className='flex flex-col'>
-              <button className="p-2 bg-lightYellow text-darkBrown font-medium rounded-lg mb-4"
+              <button className={`p-2 ${teamBgColor(team as TeamKey)} font-medium text-white rounded-lg mb-4`}
                 style={{
                   visibility: !thisPlayerFromGameState?.team || thisPlayerFromGameState?.team !== team ? 'visible' : 'hidden'
                 }}
@@ -65,7 +67,7 @@ const TeamManagement = ({ gameState, isHost }: TeamManagementProps) => {
                 {`เข้าร่วมทีม ${team === "teamA" ? "A" : "B"}`}
               </button>
 
-              {isHost ? <button className="p-2 bg-lightYellow text-darkBrown font-medium rounded-lg"
+              {isHost ? <button className="p-2 bg-lightBrown text-darkBrown font-medium rounded-lg"
                 onClick={() => handleStartTurnOfTeam(team as TeamKey)}
               >
                 {`เริ่มรอบของทีม ${team === "teamA" ? "A" : "B"}`}
@@ -73,7 +75,7 @@ const TeamManagement = ({ gameState, isHost }: TeamManagementProps) => {
               }
 
               <div className="flex flex-row gap-2 items-center">
-                <p className={`text-center font-bold text-[20px] ${teamColor(team as TeamKey)}`}
+                <p className={`text-center font-bold text-[20px] ${teamFontColor(team as TeamKey)}`}
                 >
                   {TEAM_SCORE_LABEL[team as TeamKey]}
                 </p>
@@ -81,8 +83,8 @@ const TeamManagement = ({ gameState, isHost }: TeamManagementProps) => {
               </div>
               {
                 isHost && <div className="flex flex-row gap-10 text-darkBrown justify-center">
-                  <button className="rounded-[20px] bg-lightYellow w-10 h-10 p-2 text-[16px]" onClick={() => handleAdjustTeamScore('-', team)}>-</button>
-                  <button className="rounded-[20px] bg-lightYellow w-10 h-10 p-2 text-[16px] font-medium" onClick={() => handleAdjustTeamScore('+', team)}>+</button>
+                  <button className="rounded-[20px] bg-lightBrown w-10 h-10 p-2 text-[16px]" onClick={() => handleAdjustTeamScore('-', team)}>-</button>
+                  <button className="rounded-[20px] bg-lightBrown w-10 h-10 p-2 text-[16px] font-medium" onClick={() => handleAdjustTeamScore('+', team)}>+</button>
                 </div>
               }
             </div>
