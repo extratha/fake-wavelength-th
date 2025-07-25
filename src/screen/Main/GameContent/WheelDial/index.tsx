@@ -21,7 +21,7 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
   const [modalOptions, setModalOptions] = useState({
     open: false,
   });
-  const [isShowWheelMarker, setIsShowWheelMarker] = useState(false);
+  const [isRenderWheelMarker, setIsRenderheelMarker] = useState(false);
   const [peekScreen, setIsPeekScreen] = useState(false);
   const [wheelHeight, setWheelHeight] = useState("");
   const wheelWrapRef = useRef<HTMLDivElement | null>(null);
@@ -86,7 +86,7 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
   useEffect(() => {
     if (wheelScreen) {
       setTimeout(() => {
-        setIsShowWheelMarker(wheelScreen && wheelHeight ? true : false)
+        setIsRenderheelMarker(wheelScreen && wheelHeight ? true : false)
       }, 2000)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -159,11 +159,11 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
           <div
             id="wheelScreen"
             className={clsx(
-              "absolute left-0 w-full translate-y-[2px] transition-transform duration-[3000ms] ",
+              "absolute left-0 w-full  transition-transform duration-[3000ms]  ",
               gameState?.screenOpen ? "rotate-[180deg]" : "rotate-0",
-              peekScreen ? "opacity-0" : ""
+              // peekScreen ? "opacity-0" : ""
             )}
-            style={{ zIndex: 5, scale: '1 1.02' }}
+            style={{ zIndex: 5, }}
           >
             <Image
               src={
@@ -178,7 +178,7 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
           </div>
 
           {/* Wheel Marker */}
-          {isShowWheelMarker && (
+          {isRenderWheelMarker && (
             <div
               className="absolute top-0 left-0 w-full  p-1 flex items-center justify-center z-1 scale-[0.8]"
               style={{
@@ -186,16 +186,29 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
                 zIndex: 1,
               }}
             >
-              <Image
-                src={
-                  "https://res.cloudinary.com/dpya79wdj/image/upload/v1753418311/wheelBGnum_rcrfvd.png"
-                }
-                alt=""
-                width={0}
-                height={0}
-                sizes="100vw"
-                className="w-full h-auto"
-              ></Image>
+              {
+                !gameState?.screenOpen && !isHost && !isClueGiver ?
+                  <Image
+                    src={
+                      "https://res.cloudinary.com/dpya79wdj/image/upload/v1753455560/wheelBGnum_hide_fempdb.png"
+                    }
+                    alt=""
+                    width={0}
+                    height={0}
+                    sizes="100vw"
+                    className="w-full h-auto"
+                  /> : <Image
+                    src={
+                      "https://res.cloudinary.com/dpya79wdj/image/upload/v1753418311/wheelBGnum_rcrfvd.png"
+                    }
+                    alt=""
+                    width={0}
+                    height={0}
+                    sizes="100vw"
+                    className="w-full h-auto"
+                  />
+              }
+
             </div>
           )}
 
