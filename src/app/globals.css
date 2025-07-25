@@ -28,9 +28,21 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+
+button {
+  box-shadow: 0 2px 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+button:active {
+  scale: 0.97;
+  box-shadow:none
+}
+
+
 .animated-border-button {
   position: relative;
   z-index: 0;
+  box-shadow: none;
   overflow: hidden;
   border-radius: 0.5rem;
 }
@@ -38,8 +50,9 @@ body {
 .animated-border-button::before {
   content: "";
   position: absolute;
+  overflow: hidden;
   inset: 0px 4px;
-  background: linear-gradient(135deg, #d1a908, #c55505, #d1a908);
+  background: linear-gradient(135deg, #e0b819, #da6511, #e0b819);
   /* loop gradient */
   background-size: 300% 300%;
   /* ขยาย gradient ให้มีพื้นที่เลื่อน */
@@ -49,10 +62,15 @@ body {
   border-radius: inherit;
 }
 
+.opened::before {
+  background-image: linear-gradient(135deg, #585858, #979795, #585858);
+}
+
+
 .animated-border-button>* {
   position: relative;
   z-index: 1;
-  color: 'white';
+  color: white;
   /* lightBrown */
   border-radius: 0.2rem;
   padding: 2px 4px
@@ -72,13 +90,9 @@ body {
   }
 }
 
-button:active {
-  scale: 0.97
-}
-
 .gradient-border {
   position: relative;
-  color: 'white';
+  color: white;
   z-index: 100;
 }
 
@@ -89,9 +103,9 @@ button:active {
   left: 0;
   right: 0;
   bottom: 0;
-  max-height: 1000px;
+  max-height: 1100px;
   padding: 2px;
-  background: linear-gradient(135deg,#ffffff , #f5d859 , #f97316, #f5d859 ,#ffffff);
+  background: linear-gradient(135deg, #ffffff, #f5d859, #f97316, #f5d859, #ffffff);
   background-size: 300% 300%;
   background-position: 0% 0%;
   animation: borderRun 4s linear infinite;

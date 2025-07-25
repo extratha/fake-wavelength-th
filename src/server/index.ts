@@ -2,6 +2,8 @@ import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import cors from "cors";
+import { pairWords as fullPairWords, PairWord } from './constant/pairWords';
+
 declare module "socket.io" {
   interface Socket {
     userId?: string;
@@ -23,17 +25,13 @@ app.use(express.json());
 type TeamKey = "teamA" | "teamB"
 type ScoreType = Record<TeamKey, number>
 
-type PairWord = {
-  words: [string, string];
-  used: boolean;
-};
-
 type GameState = {
   roomId: string;
   clueGiver: string | null;
   turn: TeamKey | null;
   scores: ScoreType;
   pairWords: PairWord | null;
+  allPairWords: PairWord[];
   answerPosition: number | null;
   guessPosition: number | null;
   clue: string | null;
@@ -97,6 +95,26 @@ function setNewHost(roomId: string, userId: string) {
   console.log("New host is : ", newHost.name)
 }
 
+function getFreshPairWords(): PairWord[] {
+  return fullPairWords.map(p => ({ ...p }));
+}
+
+function getUnusedPair(room: RoomType): PairWord | null {
+  const available = room.state.allPairWords?.filter(p => !p.used);
+  if (!available || available.length === 0) return null;
+  const selected = available[Math.floor(Math.random() * available.length)];
+  selected.used = true;
+  room.state.pairWords = selected;
+  return selected;
+}
+
+function resetPairWords(room: RoomType) {
+  for (const p of room.state.allPairWords) {
+    p.used = false;
+  }
+  room.state.pairWords = null;
+}
+
 io.on("connection", (socket) => {
 
   socket.on("getAvailableRooms", (callback) => {
@@ -121,6 +139,7 @@ io.on("connection", (socket) => {
           },
           turn: null,
           pairWords: null,
+          allPairWords: getFreshPairWords(),
           answerPosition: null,
           guessPosition: null,
           clue: null,
@@ -405,6 +424,33 @@ io.on("connection", (socket) => {
     updateRoomState(roomId, room)
 
     console.log(`[Room ${roomId}] Teams randomized: ${teamA.map(u => u.name).join(', ')} → TEAM A | ${teamB.map(u => u.name).join(', ')} → TEAM B`)
+  })
+
+  socket.on('randomPairWord', ({ roomId }, callback) => {
+    const room = rooms[roomId]
+    if (!room) return
+
+    const result = getUnusedPair(room)
+    if (!result) {
+      callback({ success: false, message: 'คำหมดแล้ว กรุณา reset ก่อน' })
+
+      console.log('No unused pair words left')
+      return
+    }
+
+    updateRoomState(roomId, room)
+    const left = room.state.pairWords ? room.state.pairWords.words[0] : ''
+    const right = room.state.pairWords ? room.state.pairWords.words[1] : ''
+    console.log('Random pair word current words are ', left, right)
+  })
+
+  socket.on('resetPairWord', ({ roomId }) => {
+    const room = rooms[roomId]
+    if (!room) return
+
+    resetPairWords(room)
+    updateRoomState(roomId, room)
+    console.log('Reset pair word success ')
   })
 
 

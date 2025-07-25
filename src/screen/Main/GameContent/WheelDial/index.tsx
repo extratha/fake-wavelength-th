@@ -10,6 +10,8 @@ import Image from "next/image";
 // import ImageWheelDial from "../../../../assets/wheelDial.png";
 // import ImageChromeBasic from "../../../../assets/chromeBasic.png";
 import Modal from "@/component/Modal";
+import WordCard from "./WordCard";
+import { Eye, EyeClosed } from "lucide-react";
 
 type WheelDialProps = {
   gameState: GameState;
@@ -102,7 +104,7 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
         if (wheelWrapRef.current.clientWidth > 250) {
           setWheelHeight(`${wheelWrapRef.current.clientHeight / 2}px`);
         } else {
-          setWheelHeight('100%');
+          setWheelHeight('80%');
         }
       }
     };
@@ -120,7 +122,7 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
       <div
         id="wheelWrap"
         ref={wheelWrapRef}
-        className="relative w-[calc(100%-100px)] max-w-[1200px] aspect-square mx-auto "
+        className="relative w-[calc(100%-60px)] max-w-[1200px] aspect-square mx-auto "
       >
         <div
           id="wheel"
@@ -161,7 +163,7 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
             className={clsx(
               "absolute left-0 w-full  transition-transform duration-[3000ms]  ",
               gameState?.screenOpen ? "rotate-[180deg]" : "rotate-0",
-              // peekScreen ? "opacity-0" : ""
+              peekScreen ? "opacity-0" : ""
             )}
             style={{ zIndex: 5, }}
           >
@@ -187,7 +189,7 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
               }}
             >
               {
-                !gameState?.screenOpen && !isHost && !isClueGiver ?
+                !gameState?.screenOpen && !isClueGiver ?
                   <Image
                     src={
                       "https://res.cloudinary.com/dpya79wdj/image/upload/v1753455560/wheelBGnum_hide_fempdb.png"
@@ -234,21 +236,24 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
         </div>
 
         {/* Controls */}
-        <div ref={wheelControl} className=" w-full z-20 left-0 sm:mt-20 mx-auto" >
+        <div ref={wheelControl} className=" w-full z-20 left-0 sm:mt-10 mx-auto" >
           {
             isClueGiver && <div className="w-full  top-[50%] left-[-36%] sm:left-0 mx-auto flex justify-center z-50">
-              <button onClick={handlePeekScreen} className="w-20 h-20  px-3 py-1 bg-lightBrown rounded-[300px] text-darkBrown font-medium">
-                {peekScreen ? "ซ่อนคะแนน" : "แง้มดูคะแนน"}
+              <button onClick={handlePeekScreen} className="w-14 h-14  px-3 py-1 bg-lightBrown rounded-[300px] text-darkBrown font-medium justify-items-center">
+                {peekScreen ? <EyeClosed /> : <Eye />}
               </button>
             </div>
           }
+
+
+          <WordCard gameState={gameState} isHost={isHost} isClueGiver={isClueGiver} />
 
           <div
             className="w-full flex flex-col sm:flex-row justify-center items-center bottom-[100px] left-0 p-5 gap-6 sm:gap-3 mx-auto text-darkBrown"
             style={{ zIndex: "10" }}
           >
-            {(isClueGiver || isHost) &&
-              <button onClick={randomizeMarker} className="h-10 px-3 py-1 bg-lightBrown rounded-lg max-w-40 font-medium ">สุ่มหมุนคะแนน</button>
+            {(isClueGiver) &&
+              <button onClick={randomizeMarker} className="h-10 px-3 py-1 bg-lightBrown rounded-lg max-w-40 font-medium ">สุ่มหมุนคะแนน </button>
 
             }
             <div className="flex gap-2 items-center">
@@ -261,7 +266,8 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
             {(isClueGiver || isHost) && (
               <button
                 onClick={toggleScreen}
-                className="animated-border-button h-10 px-3 py-1 max-w-40 font-medium text-white"
+                className={`animated-border-button ${gameState.screenOpen ? "opened" : ""}
+                 h-10 px-3 py-1 max-w-40 font-medium text-white`}
               >
                 <p>
                   {gameState?.screenOpen ? "ซ่อนคะแนน" : "เปิดคะแนนให้ทุกคน"}

@@ -8,6 +8,11 @@ import PlayersPanel from "./PlayersPanel";
 import WheelDial from "./WheelDial";
 import TeamManagement, { TeamKey } from "./TeamManagement";
 
+export type PairWord = {
+  words: [string, string];
+  used: boolean;
+};
+
 export type ScoreType = { teamA: number, teamB: number };
 
 export type GameState = {
@@ -15,7 +20,7 @@ export type GameState = {
   clueGiver: string | null;
   scores: ScoreType;
   turn: TeamKey | null,
-  pairWords: [string, string] | null;
+  pairWords: PairWord | null;
   answerPosition: number | null;
   guessPosition: number | null;
   clue: string | null;
@@ -27,7 +32,6 @@ export type GameState = {
   screenOpen: boolean;
   markerRotation: number;
 };
-
 
 const GameContent = () => {
   const { profile } = useUserProfile();
@@ -71,9 +75,6 @@ const GameContent = () => {
 
 
           {gameState.clue && <p>คำใบ้: {gameState.clue}</p>}
-          {gameState.pairWords && (
-            <p>หัวข้อ: {gameState.pairWords[0]} ←→ {gameState.pairWords[1]}</p>
-          )}
 
           {/* 🔄 แสดงหน้าปัด, ปุ่มใบ้, ปุ่มเดา ฯลฯ ตรงนี้ */}
         </div>

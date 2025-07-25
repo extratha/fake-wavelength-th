@@ -13,7 +13,7 @@
     "types": ["node"],
     "typeRoots": ["./src/types", "./node_modules/@types"],
     "paths": {
-      "*": ["types/*"]
+      "@constant/*": ["src/constant/*"]
     }
   },
   "include": ["src/server/**/*", "src/types/**/*"]

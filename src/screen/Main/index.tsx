@@ -96,6 +96,7 @@ export default function MainScreen() {
       socket.off("connect", handleConnect);
       socket.off("connect_error", handleConnectError);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
 
