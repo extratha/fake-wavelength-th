@@ -42,7 +42,6 @@ const GameContent = () => {
     if (!profile?.userId) return;
 
     const handleGameStateUpdate = (state: GameState) => {
-      console.log(state)
       setGameState(state);
     };
 

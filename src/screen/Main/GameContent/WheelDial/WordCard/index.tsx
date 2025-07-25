@@ -30,7 +30,6 @@ const WordCard = ({ gameState, isHost, isClueGiver }: WordCardProps) => {
 
   const handleRandomPairWord = () => {
     socket.emit('randomPairWord', { roomId: gameState.roomId }, (response: { success: boolean, message: string, roomId: string }) => {
-      console.log("randomWord res " ,response)
       if (!response.success) {
         setModalOptions({
           open: true,
@@ -39,7 +38,6 @@ const WordCard = ({ gameState, isHost, isClueGiver }: WordCardProps) => {
         });
       }
     })
-    console.log(gameState.pairWords)
   }
 
   const CardClass = `min-w-[100px] max-w-[150px] min-h-[100px]  bg-mediumBrown p-3 rounded-[8px] 
