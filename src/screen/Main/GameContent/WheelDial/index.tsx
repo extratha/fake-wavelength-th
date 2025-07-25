@@ -1,3 +1,4 @@
+import debounce from 'lodash.debounce';
 import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import { socket } from "@/lib/socket";
@@ -95,27 +96,24 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
   }, [wheelScreen])
 
   useEffect(() => {
-    const updateHeight = () => {
-      if (wheelWrapRef.current) {
-        console.log(
-          wheelWrapRef.current.clientHeight / 2,
-          wheelWrapRef.current.clientWidth
-        );
-        if (wheelWrapRef.current.clientWidth > 250) {
-          setWheelHeight(`${wheelWrapRef.current.clientHeight / 2}px`);
-        } else {
-          setWheelHeight('80%');
-        }
+  const debouncedUpdate = debounce(() => {
+    if (wheelWrapRef.current) {
+      const width = wheelWrapRef.current.clientWidth;
+      if (width > 250) {
+        setWheelHeight(`${wheelWrapRef.current.clientHeight / 2}px`);
+      } else {
+        setWheelHeight('80%');
       }
-    };
+    }
+  }, 200); 
 
-    updateHeight();
+  debouncedUpdate(); 
 
-    window.addEventListener("resize", updateHeight);
-    return () => {
-      window.removeEventListener("resize", updateHeight);
-    };
-  }, []);
+  window.addEventListener("resize", debouncedUpdate);
+  return () => {
+    window.removeEventListener("resize", debouncedUpdate);
+  };
+}, []);
 
   return (
     <div className="relative w-full p2">
@@ -144,9 +142,10 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
           >
             <Image
               src={
-                "https://res.cloudinary.com/dpya79wdj/image/upload/v1753419058/chromeBasic_dvojai.png"
+                "https://res.cloudinary.com/dpya79wdj/image/upload/w_800,h_800,c_limit/v1753419058/chromeBasic_dvojai.png"
               }
               alt=""
+              loading="lazy"
               width={0}
               height={0}
               sizes="100vw"
@@ -169,9 +168,10 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
           >
             <Image
               src={
-                "https://res.cloudinary.com/dpya79wdj/image/upload/v1753419059/wheelScreen_nttzdb.png"
+                "https://res.cloudinary.com/dpya79wdj/image/upload/w_1000,h_1000,c_limit/v1753419059/wheelScreen_nttzdb.png"
               }
               alt=""
+              loading="lazy"
               width={0}
               height={0}
               sizes="100vw"
@@ -192,18 +192,20 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
                 !gameState?.screenOpen && !isClueGiver ?
                   <Image
                     src={
-                      "https://res.cloudinary.com/dpya79wdj/image/upload/v1753455560/wheelBGnum_hide_fempdb.png"
+                      "https://res.cloudinary.com/dpya79wdj/image/upload/w_1000,h_1000,c_limit/v1753455560/wheelBGnum_hide_fempdb.png"
                     }
                     alt=""
+                    loading="lazy"
                     width={0}
                     height={0}
                     sizes="100vw"
                     className="w-full h-auto"
                   /> : <Image
                     src={
-                      "https://res.cloudinary.com/dpya79wdj/image/upload/v1753418311/wheelBGnum_rcrfvd.png"
+                      "https://res.cloudinary.com/dpya79wdj/image/upload/w_1000,h_1000,c_limit/v1753418311/wheelBGnum_rcrfvd.png"
                     }
                     alt=""
+                    loading="lazy"
                     width={0}
                     height={0}
                     sizes="100vw"
@@ -224,9 +226,10 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
           >
             <Image
               src={
-                "https://res.cloudinary.com/dpya79wdj/image/upload/v1753419058/wheelDial_xpfqxq.png"
+                "https://res.cloudinary.com/dpya79wdj/image/upload/w_900,h_900,c_limit/v1753419058/wheelDial_xpfqxq.png"
               }
               alt=""
+              loading="lazy"
               width={0}
               height={0}
               sizes="100vw"
