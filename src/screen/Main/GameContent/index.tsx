@@ -21,9 +21,6 @@ export type GameState = {
   scores: ScoreType;
   turn: TeamKey | null,
   pairWords: PairWord | null;
-  answerPosition: number | null;
-  guessPosition: number | null;
-  clue: string | null;
   teamA: string[];
   teamB: string[];
   users: { userId: string; name: string, team?: string }[];
@@ -73,8 +70,6 @@ const GameContent = () => {
             </p>
           </div>
 
-
-          {gameState.clue && <p>คำใบ้: {gameState.clue}</p>}
 
           {/* 🔄 แสดงหน้าปัด, ปุ่มใบ้, ปุ่มเดา ฯลฯ ตรงนี้ */}
         </div>

@@ -36,7 +36,6 @@ export default function Lobby() {
 	});
 
 	useEffect(() => {
-		console.log(profile)
 		if (!profile.userId) {
 			updateProfile({ ...profile, userId: uuidv4() })
 		}
@@ -120,7 +119,6 @@ export default function Lobby() {
 			})
 
 			socketRef.current.emit("createRoom", { room: roomIdInput, name: profile.userName, userId: profile.userId }, (response: { success: boolean; message?: string }) => {
-				console.log("CreateRoom response:", response);
 				if (response.success) {
 					router.push(`/main?room=${roomIdInput}`);
 				} else {
@@ -131,7 +129,6 @@ export default function Lobby() {
 				}
 			});
 		} catch (error) {
-			console.log("Create Room Error : ", error)
 			setIsLoading(false)
 		}
 	};
@@ -172,7 +169,6 @@ export default function Lobby() {
 			})
 
 			socketRef.current.emit("joinRoom", {   roomId, name: profile.userName, userId: profile.userId }, (response: { success: boolean; message?: string }) => {
-				console.log("Join room response:", response);
 				if (response.success) {
 					router.push(`/main?room=${roomId}`);
 				} else {
@@ -187,7 +183,6 @@ export default function Lobby() {
 			setIsLoading(false)
 		} finally {
 			setIsLoading(false)
-
 		}
 	};
 

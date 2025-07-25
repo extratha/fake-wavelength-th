@@ -25,7 +25,6 @@ export default function MainScreen() {
     setIsHost(userId === profile?.userId);
   };
   const handleLeftRoom = () => {
-    console.log('handle force left')
     router.back()
   }
   const handleGameStateUpdate = (state: GameState) => {
@@ -47,10 +46,8 @@ export default function MainScreen() {
       name: profile.userName,
     }, (response: { success: boolean; currentHostId?: string }) => {
       if (response.success) {
-        console.log('join room ', profile.roomId)
         setIsHost(response.currentHostId === profile.userId);
       } else {
-        console.log('join room failed')
         router.replace('/lobby?error=ไม่พบห้อง')
       }
     });
@@ -63,7 +60,6 @@ export default function MainScreen() {
 
     // ✅ Leave room ตอนปิดหน้า
     const leaveRoomOnUnload = () => {
-      console.log('Leave room on On Unload')
       socket.emit("leaveRoom", {
         roomId: profile.roomId,
         userId: profile.userId,
@@ -95,6 +91,9 @@ export default function MainScreen() {
     return () => {
       socket.off("connect", handleConnect);
       socket.off("connect_error", handleConnectError);
+      socket.off("newHost", handleNewHost);
+      socket.off("forceLeftRoom", handleLeftRoom);
+      socket.off("gameStateUpdate", handleGameStateUpdate);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

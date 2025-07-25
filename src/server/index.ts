@@ -34,7 +34,6 @@ type GameState = {
   allPairWords: PairWord[];
   answerPosition: number | null;
   guessPosition: number | null;
-  clue: string | null;
   teamA: string[];
   teamB: string[];
   users: { userId: string; name: string, team?: string }[];
@@ -142,7 +141,6 @@ io.on("connection", (socket) => {
           allPairWords: getFreshPairWords(),
           answerPosition: null,
           guessPosition: null,
-          clue: null,
           teamA: [],
           teamB: [],
           users: [user],
