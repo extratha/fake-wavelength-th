@@ -24,7 +24,6 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
   const [modalOptions, setModalOptions] = useState({
     open: false,
   });
-  const [isRenderWheelMarker, setIsRenderheelMarker] = useState(false);
   const [peekScreen, setIsPeekScreen] = useState(false);
   const [wheelHeight, setWheelHeight] = useState("");
   const wheelWrapRef = useRef<HTMLDivElement | null>(null);
@@ -87,33 +86,24 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
   };
 
   useEffect(() => {
-    if (wheelScreen) {
-      setTimeout(() => {
-        setIsRenderheelMarker(wheelScreen && wheelHeight ? true : false)
-      }, 2000)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wheelScreen])
-
-  useEffect(() => {
-  const debouncedUpdate = debounce(() => {
-    if (wheelWrapRef.current) {
-      const width = wheelWrapRef.current.clientWidth;
-      if (width > 250) {
-        setWheelHeight(`${wheelWrapRef.current.clientHeight / 2}px`);
-      } else {
-        setWheelHeight('80%');
+    const debouncedUpdate = debounce(() => {
+      if (wheelWrapRef.current) {
+        const width = wheelWrapRef.current.clientWidth;
+        if (width > 250) {
+          setWheelHeight(`${wheelWrapRef.current.clientHeight / 2}px`);
+        } else {
+          setWheelHeight('80%');
+        }
       }
-    }
-  }, 200); 
+    }, 200);
 
-  debouncedUpdate(); 
+    debouncedUpdate();
 
-  window.addEventListener("resize", debouncedUpdate);
-  return () => {
-    window.removeEventListener("resize", debouncedUpdate);
-  };
-}, []);
+    window.addEventListener("resize", debouncedUpdate);
+    return () => {
+      window.removeEventListener("resize", debouncedUpdate);
+    };
+  }, []);
 
   return (
     <div className="relative w-full p2">
@@ -180,41 +170,39 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
           </div>
 
           {/* Wheel Marker */}
-          {isRenderWheelMarker && (
-            <div
-              className="absolute top-0 left-0 w-full  p-1 flex items-center justify-center z-1 scale-[0.8]"
-              style={{
-                transform: `rotate(${gameState.markerRotation}deg)`,
-                zIndex: 1,
-              }}
-            >
-              {
-                !gameState?.screenOpen && !isClueGiver ?
-                  <Image
-                    src={
-                      "https://res.cloudinary.com/dpya79wdj/image/upload/w_1000,h_1000,c_limit/v1753455560/wheelBGnum_hide_fempdb.png"
-                    }
-                    alt=""
-                    loading="lazy"
-                    width={0}
-                    height={0}
-                    sizes="100vw"
-                    className="w-full h-auto"
-                  /> : <Image
-                    src={
-                      "https://res.cloudinary.com/dpya79wdj/image/upload/w_1000,h_1000,c_limit/v1753418311/wheelBGnum_rcrfvd.png"
-                    }
-                    alt=""
-                    loading="lazy"
-                    width={0}
-                    height={0}
-                    sizes="100vw"
-                    className="w-full h-auto"
-                  />
-              }
+          <div
+            className="absolute top-0 left-0 w-full  p-1 flex items-center justify-center z-1 scale-[0.8]"
+            style={{
+              transform: `rotate(${gameState.markerRotation}deg)`,
+              zIndex: 1,
+            }}
+          >
+            {
+              !gameState?.screenOpen && !isClueGiver ?
+                <Image
+                  src={
+                    "https://res.cloudinary.com/dpya79wdj/image/upload/w_1000,h_1000,c_limit/v1753455560/wheelBGnum_hide_fempdb.png"
+                  }
+                  alt=""
+                  loading="lazy"
+                  width={0}
+                  height={0}
+                  sizes="100vw"
+                  className="w-full h-auto"
+                /> : <Image
+                  src={
+                    "https://res.cloudinary.com/dpya79wdj/image/upload/w_1000,h_1000,c_limit/v1753418311/wheelBGnum_rcrfvd.png"
+                  }
+                  alt=""
+                  loading="lazy"
+                  width={0}
+                  height={0}
+                  sizes="100vw"
+                  className="w-full h-auto"
+                />
+            }
 
-            </div>
-          )}
+          </div>
 
           {/* Wheel Dial */}
           <div
