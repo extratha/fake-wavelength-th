@@ -29,7 +29,6 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
   const wheelWrapRef = useRef<HTMLDivElement | null>(null);
   const wheelControl = useRef<HTMLDivElement | null>(null);
 
-  const wheelScreen = document.getElementById("wheelScreen");
   const isClueGiver = gameState.clueGiver === profile.userId;
   const isHost = gameState.hostId === profile.userId;
 

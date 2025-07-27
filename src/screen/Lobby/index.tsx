@@ -128,7 +128,7 @@ export default function Lobby() {
 					});
 				}
 			});
-		} catch (error) {
+		} catch  {
 			setIsLoading(false)
 		}
 	};
