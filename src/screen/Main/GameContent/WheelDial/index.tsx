@@ -89,10 +89,12 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
     const debouncedUpdate = debounce(() => {
       if (wheelWrapRef.current) {
         const width = wheelWrapRef.current.clientWidth;
-        if (width > 250) {
+        const height = wheelWrapRef.current.clientHeight;
+        console.log(height, width)
+        if (height > width) {
+          setWheelHeight(`${width / 2}px`);
+        } else  {
           setWheelHeight(`${wheelWrapRef.current.clientHeight / 2}px`);
-        } else {
-          setWheelHeight('80%');
         }
       }
     }, 200);
