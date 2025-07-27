@@ -59,5 +59,5 @@ export const pairWords: PairWord[] = [
   { words: ['ตรงเวลาเสมอ', 'สายเสมอ'], used: false},
   { words: ['สถานที่เงียบ', 'สถานที่เสียงดัง'], used: false},
   { words: ['สิ่งที่ไม่ควรมีติดตัว', 'สิ่งที่ควรพกติดตัว'], used: false},
-
+  { words: ['ตัวละครที่แข็งแกร่ง', 'ตัวละครที่อ่อนแอ'], used: false},
 ];
