@@ -26,7 +26,6 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
   });
   const [peekScreen, setIsPeekScreen] = useState(false);
   const [wheelHeight, setWheelHeight] = useState("");
-  const [disableRandomMaker, setDisableRandomMaker] = useState(false)
   const wheelWrapRef = useRef<HTMLDivElement | null>(null);
   const wheelControl = useRef<HTMLDivElement | null>(null);
 
@@ -80,11 +79,13 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
       rotation: randDeg,
       userName: profile.userName,
     });
-    setDisableRandomMaker(true)
+    socket.emit('setDisableRandomMaker', {
+      roomId : gameState.roomId
+    })
   };
 
   const randomMakerBg = () => {
-    return disableRandomMaker ? "bg-gray-200" : "bg-lightBrown"
+    return gameState.disableRandomMaker ? "bg-gray-200" : "bg-lightBrown"
   }
 
   const handlePeekScreen = () => {
@@ -112,10 +113,6 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
       window.removeEventListener("resize", debouncedUpdate);
     };
   }, []);
-
-  useEffect(()=> {
-    setDisableRandomMaker(false)
-  },[gameState.clueGiver])
 
   return (
     <div className="relative w-full p2">
@@ -258,7 +255,7 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
             {(isHost || isClueGiver) &&
               <button  
               onClick={randomizeMarker} 
-              disabled={disableRandomMaker} 
+              disabled={gameState.disableRandomMaker} 
               className={`h-10 px-3 py-1 ${randomMakerBg()} rounded-lg max-w-40 font-medium`}>สุ่มหมุนคะแนน </button>
 
             }

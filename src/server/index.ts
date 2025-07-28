@@ -41,6 +41,7 @@ type GameState = {
   dialRotation: number;
   screenOpen: boolean;
   markerRotation: number;
+  disableRandomMaker: boolean; 
 };
 
 type RoomType = {
@@ -149,6 +150,7 @@ io.on("connection", (socket) => {
           dialRotation: 0,
           screenOpen: false,
           markerRotation: 0,
+          disableRandomMaker: false
         },
         hostId: userId,
       };
@@ -265,6 +267,7 @@ io.on("connection", (socket) => {
     if (!user) return;
 
     room.state.clueGiver = userId;
+    room.state.disableRandomMaker = false
     console.log(`🎯 ${user.name} (${userId}) is now Clue Giver in room ${roomId}`);
 
     updateRoomState(roomId, room);
@@ -449,6 +452,15 @@ io.on("connection", (socket) => {
     resetPairWords(room)
     updateRoomState(roomId, room)
     console.log('Reset pair word success ')
+  })
+
+  socket.on('setDisableRandomMaker', ({ roomId }) => {
+    const room = rooms[roomId]
+    if (!room) return
+
+    room.state.disableRandomMaker = true
+    updateRoomState(roomId, room)
+    console.log('random maker has been disabled ')
   })
 
 

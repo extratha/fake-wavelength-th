@@ -28,6 +28,7 @@ export type GameState = {
   dialRotation: number;
   screenOpen: boolean;
   markerRotation: number;
+  disableRandomMaker: boolean;
 };
 
 const GameContent = () => {
