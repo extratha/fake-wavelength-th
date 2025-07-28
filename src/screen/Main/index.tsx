@@ -6,12 +6,18 @@ import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Modal, { ModalOptions } from '@/component/Modal'
 import GameContent, { GameState } from './GameContent'
+import InputText from '@/component/InputText'
+import PlayersPanel from './GameContent/PlayersPanel'
+import { TeamKey } from './GameContent/TeamManagement'
 
 export default function MainScreen() {
   const { profile, profileReady } = useUserProfile()
   const router = useRouter()
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
+  const roomId = searchParams.get("room");
+  const [gameState, setGameState] = useState<GameState | null>(null);
+  const [clueInput, setClueInput] = useState('')
 
   const [isHost, setIsHost] = useState(false);
   const [modalOptions, setModalOptions] = useState<ModalOptions>({
@@ -19,6 +25,7 @@ export default function MainScreen() {
     message: "",
   });
   const [isClueGiver, setIsClueGiver] = useState(false)
+
 
   // ✅ ฟังก์ชันสำหรับรับ host ใหม่
   const handleNewHost = ({ userId }: { userId: string }) => {
@@ -30,6 +37,29 @@ export default function MainScreen() {
   const handleGameStateUpdate = (state: GameState) => {
     setIsClueGiver(state.clueGiver === profile.userId)
   };
+
+  const handleCloseModal = () => {
+    setModalOptions(prev => ({ ...prev, open: false }));
+  };
+
+
+  const submitClue = () => {
+    socket.emit('submitClue', { roomId: gameState?.roomId, clue: clueInput });
+  }
+
+  useEffect(() => {
+    if (!profile?.userId) return;
+
+    const handleGameStateUpdate = (state: GameState) => {
+      setGameState(state);
+    };
+
+    socket.on("gameStateUpdate", handleGameStateUpdate);
+
+    return () => {
+      socket.off("gameStateUpdate", handleGameStateUpdate);
+    };
+  }, [profile?.userId]);
 
   useEffect(() => {
     if (!profile.userName) {
@@ -100,10 +130,11 @@ export default function MainScreen() {
 
 
   if (!profileReady || !profile) return <div>กำลังโหลดข้อมูลผู้เล่น...</div>;
+  if (!gameState) return <p>กำลังโหลดข้อมูลเกม...</p>;
 
-  const handleCloseModal = () => {
-    setModalOptions(prev => ({ ...prev, open: false }));
-  };
+  const clueGiverUser = gameState?.users?.find((user) => user.userId === gameState.clueGiver)
+  const teamColor = (team?: TeamKey) => (team === 'teamA' ? 'text-teamA' : team === "teamB" ? 'text-teamB' : 'white')
+
 
   return (
     <div className="p-6 h-full ">
@@ -117,13 +148,50 @@ export default function MainScreen() {
         สวัสดี {profile.userName} {isHost && "(Host)"}
       </h1>
 
-      {isClueGiver ? (
-        <div>คุณเป็น คนให้คำใบ้ !! 🎯</div>
-      ) : (
-        <div>รับคำใบ้ และขยับเข็มให้ตรงกับคะแนน</div>
-      )}
+      <div className="flex justify-between">
+        <div>
+          <div >
+            <h2>ห้อง: {roomId}</h2>
+            <div >
+              <p className="inline">ผู้ให้คำใบ้: </p>
+              <p className={`inline font-medium ${teamColor(clueGiverUser?.team as TeamKey)}`}>
+                {clueGiverUser?.name || ''}
+              </p>
+            </div>
 
-      <GameContent />
+
+            {/* 🔄 แสดงหน้าปัด, ปุ่มใบ้, ปุ่มเดา ฯลฯ ตรงนี้ */}
+          </div>
+          {isClueGiver ? (
+            <div className="flex flex-col gap-2 max-w-[180px]" >
+              <p>
+                คุณเป็น คนให้คำใบ้ !! 🎯
+              </p>
+              <InputText onChange={(event) => setClueInput(event.target.value)} />
+              <button
+                className={`mt-2 p-2 w-[100px] rounded-[6px] 
+                  font-medium
+                  ${gameState.disableSubmitClue ? 'bg-gray-400 text-white cursor-default pointer-events-none' : 'bg-lightBrown text-darkBrown'}
+                  `}
+                onClick={submitClue}
+              >
+                ส่งคำใบ้
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-2">คำใบ้คือ:
+              <p className="font-medium">{gameState?.clue}</p>
+            </div>
+
+          )}
+
+        </div>
+
+        <PlayersPanel users={gameState.users} hostId={gameState.hostId} isHost={isHost} clueGiver={gameState.clueGiver} />
+      </div>
+
+
+      <GameContent gameState={gameState} />
 
       <Modal options={{ ...modalOptions, onClose: handleCloseModal }} />
     </div>

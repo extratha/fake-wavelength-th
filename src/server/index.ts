@@ -29,6 +29,7 @@ type GameState = {
   roomId: string;
   clueGiver: string | null;
   turn: TeamKey | null;
+  clue: string;
   scores: ScoreType;
   pairWords: PairWord | null;
   allPairWords: PairWord[];
@@ -42,6 +43,7 @@ type GameState = {
   screenOpen: boolean;
   markerRotation: number;
   disableRandomMaker: boolean; 
+  disableSubmitClue: boolean;
 };
 
 type RoomType = {
@@ -138,6 +140,7 @@ io.on("connection", (socket) => {
             teamB: 0,
           },
           turn: null,
+          clue: '',
           pairWords: null,
           allPairWords: getFreshPairWords(),
           answerPosition: null,
@@ -150,7 +153,8 @@ io.on("connection", (socket) => {
           dialRotation: 0,
           screenOpen: false,
           markerRotation: 0,
-          disableRandomMaker: false
+          disableRandomMaker: false,
+          disableSubmitClue: false,
         },
         hostId: userId,
       };
@@ -268,6 +272,7 @@ io.on("connection", (socket) => {
 
     room.state.clueGiver = userId;
     room.state.disableRandomMaker = false
+    room.state.disableSubmitClue = false
     console.log(`🎯 ${user.name} (${userId}) is now Clue Giver in room ${roomId}`);
 
     updateRoomState(roomId, room);
@@ -461,6 +466,25 @@ io.on("connection", (socket) => {
     room.state.disableRandomMaker = true
     updateRoomState(roomId, room)
     console.log('random maker has been disabled ')
+  })
+
+  socket.on('setDisableRandomMaker', ({ roomId }) => {
+    const room = rooms[roomId]
+    if (!room) return
+
+    room.state.disableRandomMaker = true
+    updateRoomState(roomId, room)
+    console.log('random maker has been disabled ')
+  })
+
+  socket.on('submitClue', ({ roomId, clue }) => {
+    const room = rooms[roomId]
+    if (!room) return
+
+    room.state.clue=  clue
+    room.state.disableSubmitClue = true
+    updateRoomState(roomId, room)
+    console.log('The clue is : ', clue)
   })
 
 

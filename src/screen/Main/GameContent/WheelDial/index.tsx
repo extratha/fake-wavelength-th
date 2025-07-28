@@ -84,9 +84,6 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
     })
   };
 
-  const randomMakerBg = () => {
-    return gameState.disableRandomMaker ? "bg-gray-200" : "bg-lightBrown"
-  }
 
   const handlePeekScreen = () => {
     setIsPeekScreen(!peekScreen);
@@ -256,7 +253,10 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
               <button  
               onClick={randomizeMarker} 
               disabled={gameState.disableRandomMaker} 
-              className={`h-10 px-3 py-1 ${randomMakerBg()} rounded-lg max-w-40 font-medium`}>สุ่มหมุนคะแนน </button>
+              className={`h-10 px-3 py-1 ${gameState.disableRandomMaker ? 'bg-gray-400 text-white cursor-default pointer-events-none' : 'bg-lightBrown'} 
+              rounded-lg max-w-40 font-medium`}>
+                สุ่มหมุนคะแนน 
+                </button>
 
             }
             <div className="flex gap-2 items-center">
