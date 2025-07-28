@@ -63,7 +63,7 @@ function scheduleRoomDeletion(roomId: string) {
       io.emit("updateRooms", Object.keys(rooms));
     }
     delete roomTimeouts[roomId];
-  }, 10000);
+  }, 60000);
 }
 function cancelRoomDeletion(roomId: string) {
   if (roomTimeouts[roomId]) {
