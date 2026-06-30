@@ -22,6 +22,10 @@ const io = new Server(httpServer, {
 app.use(cors());
 app.use(express.json());
 
+app.get("/", (req, res) => {
+  res.send("Server is running");
+});
+
 type TeamKey = "teamA" | "teamB"
 type ScoreType = Record<TeamKey, number>
 
