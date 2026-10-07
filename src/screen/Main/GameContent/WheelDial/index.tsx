@@ -1,4 +1,5 @@
-import { useState } from "react";
+import debounce from "lodash.debounce";
+import { useEffect, useMemo, useState } from "react";
 import { socket } from "@/lib/socket";
 import { GameState } from "..";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -28,6 +29,62 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
   const isClueGiver = gameState.clueGiver === profile.userId;
   const isHost = gameState.hostId === profile.userId;
 
+  // ---------- ลากหมุนเข็ม ----------
+  // ระหว่างลาก แสดงค่าในเครื่องตัวเองทันที (ไม่ต้องรอ server) แล้วค่อยส่งค่าไป server เป็นระยะ
+  const [isDraggingDial, setIsDraggingDial] = useState(false);
+  const [localDialRotation, setLocalDialRotation] = useState<number | null>(null);
+
+  // debounce + maxWait = throttle: ส่งไม่เกินทุก 60ms ระหว่างลาก ให้คนอื่นเห็นเข็มขยับตาม
+  const emitDialRotationThrottled = useMemo(
+    () =>
+      debounce(
+        (roomId: string, rotation: number, userName: string) => {
+          socket.emit("updateDialRotation", { roomId, rotation, userName });
+        },
+        60,
+        { maxWait: 60 }
+      ),
+    []
+  );
+
+  useEffect(() => {
+    return () => emitDialRotationThrottled.cancel();
+  }, [emitDialRotationThrottled]);
+
+  // ปล่อยนิ้วแล้ว: เลิกใช้ค่าในเครื่องเมื่อ server ส่งค่าเดียวกันกลับมา (กันเข็มเด้งกลับไปค่าเก่าชั่วขณะ)
+  useEffect(() => {
+    if (isDraggingDial || localDialRotation === null) return;
+    if (gameState.dialRotation === localDialRotation) {
+      setLocalDialRotation(null);
+      return;
+    }
+    // กันค้าง: ถ้ามีคนอื่นหมุนแทรกจนค่าไม่ตรง ก็กลับไปใช้ค่าจาก server หลังจากนี้
+    const fallbackTimer = setTimeout(() => setLocalDialRotation(null), 1000);
+    return () => clearTimeout(fallbackTimer);
+  }, [isDraggingDial, localDialRotation, gameState.dialRotation]);
+
+  const handleDialDragStart = () => {
+    setIsDraggingDial(true);
+  };
+
+  const handleDialDrag = (rotation: number) => {
+    setLocalDialRotation(rotation);
+    emitDialRotationThrottled(gameState.roomId, rotation, profile.userName);
+  };
+
+  const handleDialDragEnd = (rotation: number) => {
+    setLocalDialRotation(rotation);
+    setIsDraggingDial(false);
+    // ส่งค่าสุดท้ายทันที ไม่ต้องรอรอบ throttle
+    emitDialRotationThrottled.cancel();
+    socket.emit("updateDialRotation", {
+      roomId: gameState.roomId,
+      rotation,
+      userName: profile.userName,
+    });
+  };
+
+  const displayedDialRotation = localDialRotation ?? gameState.dialRotation;
 
 
   const rotateDial = (deg: number) => {
@@ -94,11 +151,15 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
       >
         <div id="wheelSvg" className="relative w-full overflow-hidden border-4 border-[#4b352a]">
           <WheelSvg
-            dialRotation={gameState.dialRotation}
+            dialRotation={displayedDialRotation}
             markerRotation={gameState.markerRotation}
             screenOpen={gameState.screenOpen}
             showScoreZones={gameState.screenOpen || isClueGiver}
             peekScreen={peekScreen}
+            isDraggingDial={isDraggingDial}
+            onDialDragStart={handleDialDragStart}
+            onDialDrag={handleDialDrag}
+            onDialDragEnd={handleDialDragEnd}
           />
         </div>
 

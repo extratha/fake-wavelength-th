@@ -147,3 +147,98 @@ button:active {
 .teamB-border-glow::before {
   background-image: linear-gradient(135deg, #EA5B6F, #ffffff, #EA5B6F);
 }
+
+/* ---------- Game animations ---------- */
+
+/* โซนคะแนนที่เข็มชี้ กระพริบหลังเปิดคะแนน (delay ตั้งจาก WheelSvg ให้รอฉากหมุนเสร็จก่อน) */
+.wheel-zone-hit {
+  animation: wheelZoneHit 0.7s ease-in-out 4 alternate;
+}
+
+@keyframes wheelZoneHit {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0.45;
+  }
+}
+
+/* ตัวเลขคะแนนทีม เด้งเมื่อเปลี่ยน */
+.score-pop {
+  display: inline-block;
+  animation: scorePop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes scorePop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* การ์ดคู่คำ พลิกเข้ามาเมื่อสุ่มคู่ใหม่ */
+.card-flip-in {
+  animation: cardFlipIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes cardFlipIn {
+  from {
+    transform: perspective(600px) rotateY(90deg);
+    opacity: 0;
+  }
+
+  to {
+    transform: perspective(600px) rotateY(0deg);
+    opacity: 1;
+  }
+}
+
+/* Modal ค่อย ๆ ปรากฏ */
+.modal-backdrop-in {
+  animation: modalBackdropIn 0.2s ease-out;
+}
+
+.modal-panel-in {
+  animation: modalPanelIn 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes modalBackdropIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalPanelIn {
+  from {
+    transform: translateY(8px) scale(0.96);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* ผู้ใช้ที่ตั้งค่าลดการเคลื่อนไหวในเครื่อง: ตัด animation/transition ทั้งหมด */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

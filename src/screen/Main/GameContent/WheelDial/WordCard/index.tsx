@@ -48,9 +48,11 @@ const WordCard = ({ gameState, isHost, isClueGiver }: WordCardProps) => {
   return (
     <div className="flex flex-col gap-3 w-full justify-center mt-2">
       <div className="flex flex-row w-full gap-5 justify-center">
+        {/* key เปลี่ยนตามคู่คำ ทำให้การ์ดพลิกเข้ามาใหม่ทุกครั้งที่สุ่มคู่คำ */}
         <div
+          key={`left-${leftWord}-${rightWord}`}
           id="left"
-          className={CardClass}
+          className={`${CardClass} card-flip-in`}
           style={{
             boxShadow: "2px 4px 3px 0px rgba(0,0,0,0.8)"
           }}
@@ -59,10 +61,12 @@ const WordCard = ({ gameState, isHost, isClueGiver }: WordCardProps) => {
         </div>
 
         <div
+          key={`right-${leftWord}-${rightWord}`}
           id="right"
-          className={CardClass}
+          className={`${CardClass} card-flip-in`}
           style={{
-            boxShadow: "-2px 4px 3px 0px rgba(0,0,0,0.8)"
+            boxShadow: "-2px 4px 3px 0px rgba(0,0,0,0.8)",
+            animationDelay: "120ms",
           }}
         >
           {rightWord}
