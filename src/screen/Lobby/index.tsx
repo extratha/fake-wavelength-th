@@ -243,6 +243,9 @@ export default function Lobby() {
 				<h1 style={{ fontSize: "24px", margin: "24px  0", textAlign: "center" }}>
 					Fake Wavelength TH
 				</h1>
+				<p className="-mt-4 mb-6 text-center text-[15px] italic opacity-80">
+					What&apos;s &ldquo;a lot&rdquo; to you isn&apos;t &ldquo;a lot&rdquo; to them. That&apos;s exactly why you have to guess!
+				</p>
 				<InputText
 					placeholder="ชื่อ"
 					value={profile.userName || ""}
