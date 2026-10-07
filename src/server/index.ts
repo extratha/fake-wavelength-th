@@ -1,6 +1,6 @@
 import express from "express";
 import { createServer } from "http";
-import { Server } from "socket.io";
+import { Server, Socket } from "socket.io";
 import cors from "cors";
 import { pairWords as fullPairWords, PairWord } from './constant/pairWords';
 
@@ -165,6 +165,24 @@ function removeDisconnectedUser(userId: string) {
   }
 }
 
+type RoomRole = 'host' | 'clueGiver';
+
+// ตรวจสิทธิ์ฝั่ง server: client ส่ง event อะไรมาก็ได้ จึงต้องเช็คว่าคนส่ง (socket.userId) มีสิทธิ์จริง
+function isRoomMember(socket: Socket, room: RoomType) {
+  return !!socket.userId && room.users.has(socket.userId);
+}
+
+function canControlRoom(socket: Socket, room: RoomType, allowedRoles: RoomRole[]) {
+  if (!isRoomMember(socket, room)) return false;
+  if (allowedRoles.includes('host') && room.hostId === socket.userId) return true;
+  if (allowedRoles.includes('clueGiver') && room.state.clueGiver === socket.userId) return true;
+  return false;
+}
+
+function rejectUnauthorized(socket: Socket, eventName: string) {
+  console.log(`⛔ ${socket.userId ?? 'unknown user'} tried "${eventName}" without permission`);
+}
+
 io.on("connection", (socket) => {
 
   socket.on("getAvailableRooms", (callback) => {
@@ -251,6 +269,7 @@ io.on("connection", (socket) => {
   socket.on('assignHost', ({ roomId, userId, targetToHostId }) => {
     const room = rooms[roomId];
     if (!room) return;
+    if (!canControlRoom(socket, room, ['host'])) return rejectUnauthorized(socket, 'assignHost');
 
     const targetToHost = room.users.get(targetToHostId)
     if (!targetToHost) return;
@@ -262,6 +281,7 @@ io.on("connection", (socket) => {
   socket.on("leaveRoom", ({ roomId, userId, name }) => {
     const room = rooms[roomId];
     if (!room) return;
+    if (userId !== socket.userId) return rejectUnauthorized(socket, 'leaveRoom');
 
     room.users.delete(userId);
     socket.leave(roomId);
@@ -305,6 +325,7 @@ io.on("connection", (socket) => {
   socket.on("assignClueGiver", ({ roomId, userId }) => {
     const room = rooms[roomId];
     if (!room) return;
+    if (!canControlRoom(socket, room, ['host'])) return rejectUnauthorized(socket, 'assignClueGiver');
 
     // ตรวจสอบว่าผู้เล่นอยู่ในห้อง
     const user = room.users.get(userId);
@@ -321,6 +342,7 @@ io.on("connection", (socket) => {
   socket.on("kickUser", ({ roomId, userId }) => {
     const room = rooms[roomId];
     if (!room) return;
+    if (!canControlRoom(socket, room, ['host'])) return rejectUnauthorized(socket, 'kickUser');
 
     if (!room.users.has(userId)) return;
 
@@ -365,6 +387,7 @@ io.on("connection", (socket) => {
   socket.on("updateDialRotation", ({ roomId, rotation, userName }) => {
     const room = rooms[roomId];
     if (!room) return;
+    if (!isRoomMember(socket, room)) return rejectUnauthorized(socket, 'updateDialRotation');
     room.state.dialRotation = rotation;
     console.log(`${userName} has updateDialRotation : ${rotation}`)
     updateRoomState(roomId, room);
@@ -373,6 +396,7 @@ io.on("connection", (socket) => {
   socket.on("toggleScreen", ({ roomId, screenOpen, userName }) => {
     const room = rooms[roomId];
     if (!room) return;
+    if (!canControlRoom(socket, room, ['host', 'clueGiver'])) return rejectUnauthorized(socket, 'toggleScreen');
 
     room.state.screenOpen = screenOpen;
     console.log(`${userName} has updated screenOpen : ${screenOpen}`)
@@ -382,6 +406,7 @@ io.on("connection", (socket) => {
   socket.on("randomizeMarker", ({ roomId, rotation, userName }) => {
     const room = rooms[roomId];
     if (!room) return;
+    if (!canControlRoom(socket, room, ['host', 'clueGiver'])) return rejectUnauthorized(socket, 'randomizeMarker');
 
     room.state.markerRotation = rotation;
     console.log(`${userName} has updated randomizeMarker : ${rotation}`)
@@ -391,6 +416,7 @@ io.on("connection", (socket) => {
   socket.on('updateTeamScore', ({ roomId, team, score, method }) => {
     const room = rooms[roomId]
     if (!room) return
+    if (!canControlRoom(socket, room, ['host'])) return rejectUnauthorized(socket, 'updateTeamScore');
 
     const teamType = team as TeamKey
     const currentScore = room.state.scores[teamType]
@@ -404,6 +430,7 @@ io.on("connection", (socket) => {
   socket.on('setTurnOfTeam', ({ roomId, team }) => {
     const room = rooms[roomId]
     if (!room) return
+    if (!canControlRoom(socket, room, ['host'])) return rejectUnauthorized(socket, 'setTurnOfTeam');
 
     room.state.turn = team
     console.log('Now is ', team, "'s turn")
@@ -414,6 +441,7 @@ io.on("connection", (socket) => {
   socket.on('userUpdateThierTeam', ({ roomId, userId, team }) => {
     const room = rooms[roomId]
     if (!room) return
+    if (!isRoomMember(socket, room) || userId !== socket.userId) return rejectUnauthorized(socket, 'userUpdateThierTeam');
 
     const user = room.users.get(userId)
     if (!user) {
@@ -429,6 +457,7 @@ io.on("connection", (socket) => {
   socket.on('randomizeTeam', ({ roomId }) => {
     const room = rooms[roomId]
     if (!room) return
+    if (!canControlRoom(socket, room, ['host'])) return rejectUnauthorized(socket, 'randomizeTeam');
 
     const users = Array.from(room.users.values())
     if (users.length === 0) return
@@ -479,6 +508,7 @@ io.on("connection", (socket) => {
   socket.on('randomPairWord', ({ roomId }, callback) => {
     const room = rooms[roomId]
     if (!room) return
+    if (!canControlRoom(socket, room, ['host', 'clueGiver'])) return rejectUnauthorized(socket, 'randomPairWord');
 
     const result = getUnusedPair(room)
     if (!result) {
@@ -497,6 +527,7 @@ io.on("connection", (socket) => {
   socket.on('resetPairWord', ({ roomId }) => {
     const room = rooms[roomId]
     if (!room) return
+    if (!canControlRoom(socket, room, ['host', 'clueGiver'])) return rejectUnauthorized(socket, 'resetPairWord');
 
     resetPairWords(room)
     updateRoomState(roomId, room)
@@ -506,6 +537,7 @@ io.on("connection", (socket) => {
   socket.on('setDisableRandomMaker', ({ roomId }) => {
     const room = rooms[roomId]
     if (!room) return
+    if (!canControlRoom(socket, room, ['host', 'clueGiver'])) return rejectUnauthorized(socket, 'setDisableRandomMaker');
 
     room.state.disableRandomMaker = true
     updateRoomState(roomId, room)
@@ -515,6 +547,7 @@ io.on("connection", (socket) => {
   socket.on('submitClue', ({ roomId, clue }) => {
     const room = rooms[roomId]
     if (!room) return
+    if (!canControlRoom(socket, room, ['clueGiver'])) return rejectUnauthorized(socket, 'submitClue');
 
     room.state.clue=  clue
     room.state.disableSubmitClue = true
