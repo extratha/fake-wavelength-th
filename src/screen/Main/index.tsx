@@ -11,7 +11,7 @@ import PlayersPanel from './GameContent/PlayersPanel'
 import { TeamKey } from './GameContent/TeamManagement'
 
 export default function MainScreen() {
-  const { profile, profileReady } = useUserProfile()
+  const { profile, profileReady, updateProfile } = useUserProfile()
   const router = useRouter()
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
@@ -32,7 +32,8 @@ export default function MainScreen() {
     setIsHost(userId === profile?.userId);
   };
   const handleLeftRoom = () => {
-    router.back()
+    // ใช้ replace ไป lobby ตรง ๆ แทน router.back() ที่อาจย้อนไปหน้าอื่นที่ไม่ใช่ lobby
+    router.replace('/lobby?error=คุณถูกเชิญออกจากห้อง')
   }
   const handleGameStateUpdate = (state: GameState) => {
     setIsClueGiver(state.clueGiver === profile.userId)
@@ -63,24 +64,42 @@ export default function MainScreen() {
 
   useEffect(() => {
     if (!profile.userName) {
-      router.replace('/lobby?error=กรุณาตั้งชื่อ')
+      // ส่งเลขห้องกลับไปด้วย คนที่เปิดลิงก์ห้องครั้งแรกจะได้ไม่ต้องพิมพ์เลขห้องเอง
+      const roomQuery = roomId ? `&room=${encodeURIComponent(roomId)}` : ''
+      router.replace(`/lobby?error=กรุณาตั้งชื่อ${roomQuery}`)
       return
     }
 
     if (!profileReady || !profile?.userId) return;
 
+    // ให้ห้องใน URL เป็นหลัก (เช่นเปิดจากลิงก์ที่เพื่อนแชร์) แล้วอัปเดต profile ให้ตรงกัน
+    // component อื่นใช้ profile.roomId อยู่ พอ profile เปลี่ยน effect นี้จะทำงานใหม่แล้วค่อย join
+    if (roomId && roomId !== profile.roomId) {
+      updateProfile({ roomId })
+      return
+    }
+
+    const joinCurrentRoom = () => {
+      socket.emit("joinRoom", {
+        roomId: profile.roomId,
+        userId: profile.userId,
+        name: profile.userName,
+      }, (response: { success: boolean; currentHostId?: string }) => {
+        if (response.success) {
+          setIsHost(response.currentHostId === profile.userId);
+        } else {
+          router.replace('/lobby?error=ไม่พบห้อง')
+        }
+      });
+    }
+
     // ✅ Emit joinRoom หลัง profile พร้อม
-    socket.emit("joinRoom", {
-      roomId: profile.roomId,
-      userId: profile.userId,
-      name: profile.userName,
-    }, (response: { success: boolean; currentHostId?: string }) => {
-      if (response.success) {
-        setIsHost(response.currentHostId === profile.userId);
-      } else {
-        router.replace('/lobby?error=ไม่พบห้อง')
-      }
-    });
+    // ถ้ายังไม่ connect ให้รอ event "connect" ด้านล่างแทน (กัน join ซ้ำ 2 ครั้ง)
+    if (socket.connected) {
+      joinCurrentRoom()
+    }
+    // เน็ตหลุดแล้ว reconnect จะได้ socket ใหม่ที่ยังไม่อยู่ในห้อง ต้อง join ใหม่ทุกครั้งที่ connect
+    socket.on("connect", joinCurrentRoom);
 
     // ✅ ตั้ง listener
     socket.on("newHost", handleNewHost);
@@ -100,7 +119,11 @@ export default function MainScreen() {
     window.addEventListener("beforeunload", leaveRoomOnUnload);
 
     return () => {
+      // ถอด listener ชุดเดียวกับที่ลงทะเบียนในรอบนี้ ไม่งั้น listener จะสะสมทุกครั้งที่ profile เปลี่ยน
+      socket.off("connect", joinCurrentRoom);
       socket.off("newHost", handleNewHost);
+      socket.off('forceLeftRoom', handleLeftRoom);
+      socket.off("gameStateUpdate", handleGameStateUpdate);
       window.removeEventListener("beforeunload", leaveRoomOnUnload);
     };
     //eslint-disable-next-line react-hooks/exhaustive-deps

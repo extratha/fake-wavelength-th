@@ -79,7 +79,12 @@ const TeamManagement = ({ gameState, isHost }: TeamManagementProps) => {
                 >
                   {TEAM_SCORE_LABEL[team as TeamKey]}
                 </p>
-                <p className="text-center font-bold text-[32px]"> {gameState.scores[team as TeamKey] || 0}</p>
+                <p className="text-center font-bold text-[32px]">
+                  {/* key เปลี่ยนตามคะแนน ทำให้ animation เด้งเล่นใหม่ทุกครั้งที่คะแนนเปลี่ยน */}
+                  <span key={gameState.scores[team as TeamKey] || 0} className="score-pop">
+                    {gameState.scores[team as TeamKey] || 0}
+                  </span>
+                </p>
               </div>
               {
                 isHost && <div className="flex flex-row gap-10 text-darkBrown justify-center">

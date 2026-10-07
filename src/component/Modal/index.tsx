@@ -30,6 +30,7 @@ export default function Modal({ options, children }: { options: ModalOptions, ch
         alignItems: "center",
         justifyContent: "center",
       }}
+      className="modal-backdrop-in"
       onClick={handleClose}
     >
       <div
@@ -40,6 +41,7 @@ export default function Modal({ options, children }: { options: ModalOptions, ch
           minWidth: 300,
           color: "#4B352A"
         }}
+        className="modal-panel-in"
         onClick={(e) => e.stopPropagation()}
       >
         <p style={{ fontSize: 20, color: '#4B352A', fontWeight: 500 }}>{message}</p>

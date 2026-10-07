@@ -1,10 +1,8 @@
-import debounce from 'lodash.debounce';
-import { useEffect, useRef, useState } from "react";
-import clsx from "clsx";
+import debounce from "lodash.debounce";
+import { useEffect, useMemo, useState } from "react";
 import { socket } from "@/lib/socket";
 import { GameState } from "..";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import Image from "next/image";
 
 // import ImageWheelScore from "../../../../../public/wheelBGnum.png";
 // import ImageWheelScreen from "../../../../assets/wheelScreen.png";
@@ -12,6 +10,11 @@ import Image from "next/image";
 // import ImageChromeBasic from "../../../../assets/chromeBasic.png";
 import Modal from "@/component/Modal";
 import WordCard from "./WordCard";
+// หน้าปัดใช้ SVG แล้ว (เวอร์ชัน PNG เดิมเก็บไว้ที่ ./WheelPng แต่ไม่ได้ import เพื่อไม่ต้องโหลดรูป)
+import WheelSvg from "./WheelSvg";
+import LeftRightGuess from "./LeftRightGuess";
+import RoundResultPanel from "./RoundResultPanel";
+import { TeamKey } from "../TeamManagement";
 import { Eye, EyeClosed } from "lucide-react";
 
 type WheelDialProps = {
@@ -25,19 +28,90 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
     open: false,
   });
   const [peekScreen, setIsPeekScreen] = useState(false);
-  const [wheelHeight, setWheelHeight] = useState("");
-  const wheelWrapRef = useRef<HTMLDivElement | null>(null);
-  const wheelControl = useRef<HTMLDivElement | null>(null);
 
   const isClueGiver = gameState.clueGiver === profile.userId;
   const isHost = gameState.hostId === profile.userId;
+  // แง้มได้เฉพาะคนให้คำใบ้ และตอนหน้าปัดยังปิดอยู่ (กันค้างตอนเปลี่ยนคนให้คำใบ้ ที่ปุ่มแง้มหายไปแล้วกดปิดไม่ได้)
+  const isPeeking = peekScreen && isClueGiver && !gameState.screenOpen;
+
+  // เริ่มรอบใหม่ หรือไม่ได้เป็นคนให้คำใบ้แล้ว: ล้างสถานะแง้ม จะได้ไม่แง้มค้างไปรอบหน้า
+  useEffect(() => {
+    setIsPeekScreen(false);
+  }, [gameState.roundNumber, isClueGiver]);
+
+  const myTeam = (gameState.users.find((user) => user.userId === profile.userId)?.team ?? null) as TeamKey | null;
+  // หมุนเข็มได้เฉพาะสมาชิกทีมเดียวกับคนให้คำใบ้ ที่ไม่ใช่คนให้คำใบ้เอง และต้องยังไม่เปิดหน้าปัด
+  // (server เช็คซ้ำอีกชั้น ที่นี่แค่ปิดปุ่มไว้ไม่ให้งง)
+  const clueGiverTeam = gameState.users.find((user) => user.userId === gameState.clueGiver)?.team;
+  const isOnGuessingTeam = !!clueGiverTeam && myTeam === clueGiverTeam;
+  const canRotateDial = isOnGuessingTeam && !isClueGiver;
+  const isDialLocked = gameState.isRoundLocked || !canRotateDial;
+
+  // ---------- ลากหมุนเข็ม ----------
+  // ระหว่างลาก แสดงค่าในเครื่องตัวเองทันที (ไม่ต้องรอ server) แล้วค่อยส่งค่าไป server เป็นระยะ
+  const [isDraggingDial, setIsDraggingDial] = useState(false);
+  const [localDialRotation, setLocalDialRotation] = useState<number | null>(null);
+
+  // debounce + maxWait = throttle: ส่งไม่เกินทุก 60ms ระหว่างลาก ให้คนอื่นเห็นเข็มขยับตาม
+  const emitDialRotationThrottled = useMemo(
+    () =>
+      debounce(
+        (roomId: string, rotation: number, userName: string) => {
+          socket.emit("updateDialRotation", { roomId, rotation, userName });
+        },
+        60,
+        { maxWait: 60 }
+      ),
+    []
+  );
+
+  useEffect(() => {
+    return () => emitDialRotationThrottled.cancel();
+  }, [emitDialRotationThrottled]);
+
+  // ปล่อยนิ้วแล้ว: เลิกใช้ค่าในเครื่องเมื่อ server ส่งค่าเดียวกันกลับมา (กันเข็มเด้งกลับไปค่าเก่าชั่วขณะ)
+  useEffect(() => {
+    if (isDraggingDial || localDialRotation === null) return;
+    if (gameState.dialRotation === localDialRotation) {
+      setLocalDialRotation(null);
+      return;
+    }
+    // กันค้าง: ถ้ามีคนอื่นหมุนแทรกจนค่าไม่ตรง ก็กลับไปใช้ค่าจาก server หลังจากนี้
+    const fallbackTimer = setTimeout(() => setLocalDialRotation(null), 1000);
+    return () => clearTimeout(fallbackTimer);
+  }, [isDraggingDial, localDialRotation, gameState.dialRotation]);
+
+  const handleDialDragStart = () => {
+    setIsDraggingDial(true);
+  };
+
+  const handleDialDrag = (rotation: number) => {
+    setLocalDialRotation(rotation);
+    emitDialRotationThrottled(gameState.roomId, rotation, profile.userName);
+  };
+
+  const handleDialDragEnd = (rotation: number) => {
+    setLocalDialRotation(rotation);
+    setIsDraggingDial(false);
+    // ส่งค่าสุดท้ายทันที ไม่ต้องรอรอบ throttle
+    emitDialRotationThrottled.cancel();
+    socket.emit("updateDialRotation", {
+      roomId: gameState.roomId,
+      rotation,
+      userName: profile.userName,
+    });
+  };
+
+  const displayedDialRotation = localDialRotation ?? gameState.dialRotation;
 
 
   const rotateDial = (deg: number) => {
+    if (isDialLocked) return;
     if (deg > 0 && gameState.dialRotation >= 90) return;
     if (deg < 0 && gameState.dialRotation <= -90) return;
 
-    const newRotation = gameState.dialRotation + deg;
+    // clamp ไว้ในช่วง -90 ถึง 90 กันกรณีเช่นอยู่ที่ 85 แล้วกด +10 เป็น 95
+    const newRotation = Math.min(90, Math.max(-90, gameState.dialRotation + deg));
 
     socket.emit("updateDialRotation", {
       roomId: gameState.roomId,
@@ -73,10 +147,9 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
   };
 
   const randomizeMarker = () => {
-    const randDeg = Math.floor(Math.random() * 180) - 90;
+    // server เป็นคนสุ่มตำแหน่งเป้า (ไม่ส่งค่าจาก client เพื่อกันโกง)
     socket.emit("randomizeMarker", {
       roomId: gameState.roomId,
-      rotation: randDeg,
       userName: profile.userName,
     });
     socket.emit('setDisableRandomMaker', {
@@ -86,158 +159,37 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
 
 
   const handlePeekScreen = () => {
-    setIsPeekScreen(!peekScreen);
+    setIsPeekScreen(!isPeeking);
   };
-
-  useEffect(() => {
-    const debouncedUpdate = debounce(() => {
-      if (wheelWrapRef.current) {
-        const width = wheelWrapRef.current.clientWidth;
-        const height = wheelWrapRef.current.clientHeight;
-        console.log(height, width)
-        if (height > width) {
-          setWheelHeight(`${width / 2}px`);
-        } else  {
-          setWheelHeight(`${wheelWrapRef.current.clientHeight / 2}px`);
-        }
-      }
-    }, 200);
-
-    debouncedUpdate();
-
-    window.addEventListener("resize", debouncedUpdate);
-    return () => {
-      window.removeEventListener("resize", debouncedUpdate);
-    };
-  }, []);
 
   return (
     <div className="relative w-full p2">
       <div
         id="wheelWrap"
-        ref={wheelWrapRef}
         className="relative w-[calc(100%-60px)] max-w-[1200px] aspect-square mx-auto "
       >
-        <div
-          id="wheel"
-          className="relative w-full overflow-hidden border-4 border-[#4b352a]"
-          style={{
-            height: wheelHeight,
-          }}
-        >
-          {/* <div className="absolute left-0 top-[-8px] w-full h-3  bg-darkBrown"
-            style={{ zIndex: 12 }}
-          /> */}
-
-          {/* Wheel Frame */}
-          <div
-            className="absolute left-0  w-full"
-            style={{
-              zIndex: 11,
-            }}
-          >
-            <Image
-              src={
-                "https://res.cloudinary.com/dpya79wdj/image/upload/w_800,h_800,c_limit/v1753419058/chromeBasic_dvojai.png"
-              }
-              alt=""
-              loading="lazy"
-              width={0}
-              height={0}
-              sizes="100vw"
-              className="w-full h-auto"
-            ></Image>
-          </div>
-          {/* <div id="hider" ref={wheelWrapRef} className="absolute bottom-[-2px] left-0 w-full h-[5px] bg-darkBrown "
-            style={{ transform: 'translateY(-1px)', zIndex: 11 }}
-          /> */}
-
-          {/* Wheel Screen */}
-          <div
-            id="wheelScreen"
-            className={clsx(
-              "absolute left-0 w-full  transition-transform duration-[3000ms]  ",
-              gameState?.screenOpen ? "rotate-[180deg]" : "rotate-0",
-              peekScreen ? "opacity-0" : ""
-            )}
-            style={{ zIndex: 5, }}
-          >
-            <Image
-              src={
-                "https://res.cloudinary.com/dpya79wdj/image/upload/w_1000,h_1000,c_limit/v1753419059/wheelScreen_nttzdb.png"
-              }
-              alt=""
-              loading="lazy"
-              width={0}
-              height={0}
-              sizes="100vw"
-              className="w-full h-auto"
-            ></Image>
-          </div>
-
-          {/* Wheel Marker */}
-          <div
-            className="absolute top-0 left-0 w-full  p-1 flex items-center justify-center z-1 scale-[0.8]"
-            style={{
-              transform: `rotate(${gameState.markerRotation}deg)`,
-              zIndex: 1,
-            }}
-          >
-            {
-              !gameState?.screenOpen && !isClueGiver ?
-                <Image
-                  src={
-                    "https://res.cloudinary.com/dpya79wdj/image/upload/w_1000,h_1000,c_limit/v1753455560/wheelBGnum_hide_fempdb.png"
-                  }
-                  alt=""
-                  loading="lazy"
-                  width={0}
-                  height={0}
-                  sizes="100vw"
-                  className="w-full h-auto"
-                /> : <Image
-                  src={
-                    "https://res.cloudinary.com/dpya79wdj/image/upload/w_1000,h_1000,c_limit/v1753418311/wheelBGnum_rcrfvd.png"
-                  }
-                  alt=""
-                  loading="lazy"
-                  width={0}
-                  height={0}
-                  sizes="100vw"
-                  className="w-full h-auto"
-                />
-            }
-
-          </div>
-
-          {/* Wheel Dial */}
-          <div
-            className="absolute top-0 left-0 w-full z-10 transition-transform duration-300 "
-            style={{
-              transform: `rotate(${gameState.dialRotation}deg)`,
-              scale: 2,
-            }}
-          >
-            <Image
-              src={
-                "https://res.cloudinary.com/dpya79wdj/image/upload/w_900,h_900,c_limit/v1753419058/wheelDial_xpfqxq.png"
-              }
-              alt=""
-              loading="lazy"
-              width={0}
-              height={0}
-              sizes="100vw"
-              className="w-full h-auto"
-            ></Image>
-          </div>
+        <div id="wheelSvg" className="relative w-full overflow-hidden border-4 border-[#4b352a]">
+          <WheelSvg
+            dialRotation={displayedDialRotation}
+            markerRotation={gameState.markerRotation}
+            screenOpen={gameState.screenOpen}
+            showScoreZones={gameState.screenOpen || isClueGiver}
+            peekScreen={isPeeking}
+            isDraggingDial={isDraggingDial}
+            onDialDragStart={isDialLocked ? undefined : handleDialDragStart}
+            onDialDrag={isDialLocked ? undefined : handleDialDrag}
+            onDialDragEnd={isDialLocked ? undefined : handleDialDragEnd}
+          />
         </div>
 
+        <RoundResultPanel gameState={gameState} isHost={isHost} />
+
         {/* Controls */}
-        <div ref={wheelControl} className=" w-full z-20 left-0 sm:mt-10 mx-auto" >
+        <div className=" w-full z-20 left-0 sm:mt-10 mx-auto" >
           {
             isClueGiver && <div className="w-full  top-[50%] left-[-36%] sm:left-0 mx-auto flex justify-center z-50">
               <button onClick={handlePeekScreen} className="w-14 h-14  px-3 py-1 bg-lightBrown rounded-[300px] text-darkBrown font-medium justify-items-center">
-                {peekScreen ? <EyeClosed /> : <Eye />}
+                {isPeeking ? <EyeClosed /> : <Eye />}
               </button>
             </div>
           }
@@ -259,7 +211,7 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
                 </button>
 
             }
-            <div className="flex gap-2 items-center">
+            <div className={`flex gap-2 items-center ${isDialLocked ? "opacity-40 pointer-events-none" : ""}`}>
               <button onClick={() => rotateDial(-10)} className="w-10 h-10 px-3 py-1 bg-lightBrown rounded-[50px]">-</button>
               <button onClick={() => rotateDial(-1)} className="w-8 h-8 px-3 py-1 bg-lightBrown rounded-[50px]">-</button>
               <button onClick={() => rotateDial(1)} className="w-8 h-8 px-3 py-1 bg-lightBrown rounded-[50px] font-medium">+</button>
@@ -278,6 +230,8 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
               </button>
             )}
           </div>
+
+          <LeftRightGuess gameState={gameState} myTeam={myTeam} />
         </div>
       </div>
 

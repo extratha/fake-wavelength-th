@@ -13,6 +13,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useUserProfile } from "@/hooks/useUserProfile";
 import FullScreenLoading from "@/component/FullScreenLoading";
 
+const SOCKET_RESPONSE_TIMEOUT_MS = 5000
+
+type RoomResponse = { success: boolean; message?: string }
+
 export default function Lobby() {
 	const roomPattern = /^[a-zA-Z0-9-]+$/
 	const socketRef = useRef<Socket | null>(null)
@@ -31,9 +35,16 @@ export default function Lobby() {
 	socketRef.current = socket
 	const socketCurrent = socketRef.current;
 
-	socketCurrent.on("updateRooms", (rooms: string[]) => {
-		setAvailableRooms(rooms);
-	});
+	// ลงทะเบียน listener ครั้งเดียว และถอดออกตอนออกจากหน้า (เดิมอยู่ใน render ทำให้ listener เพิ่มทุกครั้งที่ re-render)
+	useEffect(() => {
+		const handleUpdateRooms = (rooms: string[]) => {
+			setAvailableRooms(rooms);
+		};
+		socketCurrent.on("updateRooms", handleUpdateRooms);
+		return () => {
+			socketCurrent.off("updateRooms", handleUpdateRooms);
+		};
+	}, [socketCurrent]);
 
 	useEffect(() => {
 		if (!profile.userId) {
@@ -72,6 +83,12 @@ export default function Lobby() {
 	}, []);
 
 	useEffect(() => {
+		// มาจากลิงก์ห้องแต่ยังไม่ได้ตั้งชื่อ: เติมเลขห้องให้เลย
+		const roomFromLink = searchParams.get('room')
+		if (roomFromLink) {
+			setRoomIdInput(roomFromLink)
+		}
+
 		const error = searchParams.get('error')
 		if (error) {
 
@@ -82,19 +99,29 @@ export default function Lobby() {
 
 			const params = new URLSearchParams(searchParams)
 			params.delete('error')
+			params.delete('room')
 			const path = window.location.pathname + (params.toString() ? `?${params.toString()}` : '')
 			router.replace(path, { scroll: false })
 		}
 	}, [searchParams, router])
 
+	const showServerTimeoutError = () => {
+		setIsLoading(false)
+		setModalOptions({
+			open: true,
+			message: 'เซิร์ฟเวอร์ไม่ตอบกลับ กรุณาลองใหม่อีกครั้ง',
+		});
+	}
+
 	const createRoom = () => {
 		try {
 			setIsLoading(true)
 
-			if (!socketRef.current) {
+			// เช็คสถานะการเชื่อมต่อจริง (เดิมเช็คแค่ว่ามี object socket ซึ่งมีอยู่เสมอ)
+			if (!socketRef.current?.connected) {
 				setModalOptions({
 					open: true,
-					message: 'รอสักครู่ กำลังเชื่อมต่อเซิร์ฟเวอร์...',
+					message: 'ยังเชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาลองใหม่อีกครั้ง',
 				});
 				throw 'connecting'
 			}
@@ -118,10 +145,16 @@ export default function Lobby() {
 				roomId: roomIdInput,
 			})
 
-			socketRef.current.emit("createRoom", { room: roomIdInput, name: profile.userName, userId: profile.userId }, (response: { success: boolean; message?: string }) => {
+			socketRef.current.timeout(SOCKET_RESPONSE_TIMEOUT_MS).emit("createRoom", { room: roomIdInput, name: profile.userName, userId: profile.userId }, (timeoutError: Error | null, response: RoomResponse) => {
+				if (timeoutError) {
+					showServerTimeoutError()
+					return
+				}
 				if (response.success) {
 					router.push(`/main?room=${roomIdInput}`);
 				} else {
+					// ต้องปิด loading ก่อน ไม่งั้นจอจะค้างที่ FullScreenLoading และ modal error ไม่แสดง
+					setIsLoading(false)
 					setModalOptions({
 						open: true,
 						message: response.message || "สร้างห้องไม่สำเร็จ",
@@ -137,10 +170,11 @@ export default function Lobby() {
 		try {
 			setIsLoading(true)
 
-			if (!socketRef.current) {
+			// เช็คสถานะการเชื่อมต่อจริง (เดิมเช็คแค่ว่ามี object socket ซึ่งมีอยู่เสมอ)
+			if (!socketRef.current?.connected) {
 				setModalOptions({
 					open: true,
-					message: 'รอสักครู่ กำลังเชื่อมต่อเซิร์ฟเวอร์...',
+					message: 'ยังเชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาลองใหม่อีกครั้ง',
 				});
 				throw 'connecting'
 			}
@@ -153,7 +187,10 @@ export default function Lobby() {
 				throw 'require_fields'
 			}
 
-			if (!roomPattern.test(roomIdInput) && !roomIdProps) {
+			// ห้องที่กดจากรายการ ต้องมาก่อนค่าที่พิมพ์ค้างไว้ในช่อง
+			const roomId = roomIdProps || roomIdInput
+
+			if (!roomPattern.test(roomId)) {
 				setModalOptions({
 					open: true,
 					message: 'หมายเลขห้องต้องเป็นตัวอักษร A-Z ตัวเลข และขีดกลาง (-) เท่านั้น',
@@ -161,17 +198,20 @@ export default function Lobby() {
 				throw 'validation_fields'
 			}
 
-			const roomId = roomIdInput || roomIdProps
-
 			updateProfile({
 				...profile,
 				roomId,
 			})
 
-			socketRef.current.emit("joinRoom", {   roomId, name: profile.userName, userId: profile.userId }, (response: { success: boolean; message?: string }) => {
+			socketRef.current.timeout(SOCKET_RESPONSE_TIMEOUT_MS).emit("joinRoom", {   roomId, name: profile.userName, userId: profile.userId }, (timeoutError: Error | null, response: RoomResponse) => {
+				if (timeoutError) {
+					showServerTimeoutError()
+					return
+				}
 				if (response.success) {
 					router.push(`/main?room=${roomId}`);
 				} else {
+					setIsLoading(false)
 					setModalOptions({
 						open: true,
 						message: response.message || "เข้าห้องไม่สำเร็จ",
@@ -180,8 +220,6 @@ export default function Lobby() {
 			});
 		} catch (error) {
 			console.log("Join Room Error : ", error)
-			setIsLoading(false)
-		} finally {
 			setIsLoading(false)
 		}
 	};
