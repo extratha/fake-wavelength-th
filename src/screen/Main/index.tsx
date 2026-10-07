@@ -44,9 +44,18 @@ export default function MainScreen() {
   };
 
 
+  // ส่งคำใบ้ได้ไม่จำกัดครั้ง คำใหม่จะแทนที่คำเดิมทันที
   const submitClue = () => {
-    socket.emit('submitClue', { roomId: gameState?.roomId, clue: clueInput });
+    const trimmedClue = clueInput.trim()
+    if (!trimmedClue) return
+    socket.emit('submitClue', { roomId: gameState?.roomId, clue: trimmedClue });
   }
+
+  // เริ่มรอบใหม่ server ล้างคำใบ้แล้ว ช่องพิมพ์ก็ต้องล้างตาม ไม่งั้นคำใบ้รอบก่อนจะค้างในช่อง
+  const currentRoundNumber = gameState?.roundNumber
+  useEffect(() => {
+    setClueInput('')
+  }, [currentRoundNumber])
 
   useEffect(() => {
     if (!profile?.userId) return;
@@ -190,16 +199,29 @@ export default function MainScreen() {
               <p>
                 คุณเป็น คนให้คำใบ้ !! 🎯
               </p>
-              <InputText onChange={(event) => setClueInput(event.target.value)} />
+              <InputText
+                value={clueInput}
+                maxLength={100}
+                onChange={(event) => setClueInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') submitClue()
+                }}
+              />
               <button
+                disabled={!clueInput.trim()}
                 className={`mt-2 p-2 w-[100px] rounded-[6px] 
                   font-medium
-                  ${gameState.disableSubmitClue ? 'bg-gray-400 text-white cursor-default pointer-events-none' : 'bg-lightBrown text-darkBrown'}
+                  ${clueInput.trim() ? 'bg-lightBrown text-darkBrown' : 'bg-gray-400 text-white cursor-default pointer-events-none'}
                   `}
                 onClick={submitClue}
               >
                 ส่งคำใบ้
               </button>
+              {gameState.clue && (
+                <p className="text-[14px]">
+                  คำใบ้ตอนนี้: <span className="font-medium">{gameState.clue}</span>
+                </p>
+              )}
             </div>
           ) : (
             <div className="flex gap-2">คำใบ้คือ:

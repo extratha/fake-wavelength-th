@@ -48,7 +48,6 @@ type GameState = {
   screenOpen: boolean;
   markerRotation: number;
   disableRandomMaker: boolean; 
-  disableSubmitClue: boolean;
   // ---------- รอบการเล่น / การคิดคะแนน ----------
   // ทีมตรงข้ามแทงว่าเป้าอยู่ซ้ายหรือขวาของเข็ม
   leftRightGuess: LeftRightGuess | null;
@@ -156,6 +155,7 @@ function resetPairWords(room: RoomType) {
 }
 
 const DISCONNECT_GRACE_PERIOD_MS = 5000;
+const CLUE_MAX_LENGTH = 100;
 
 // ผู้ใช้คนนี้ยังมี socket ที่ต่ออยู่ในห้องนี้ไหม (เช่น reconnect กลับมาแล้ว หรือเปิดอีกแท็บอยู่)
 function isUserConnectedToRoom(userId: string, roomId: string) {
@@ -305,7 +305,6 @@ function resetBoardForNewRound(room: RoomType) {
   room.state.dialRotation = 0;
   room.state.markerRotation = 0;
   room.state.disableRandomMaker = false;
-  room.state.disableSubmitClue = false;
   room.state.leftRightGuess = null;
   room.state.isRoundLocked = false;
   room.state.isTargetSet = false;
@@ -356,7 +355,6 @@ io.on("connection", (socket) => {
           screenOpen: false,
           markerRotation: 0,
           disableRandomMaker: false,
-          disableSubmitClue: false,
           leftRightGuess: null,
           isRoundLocked: false,
           isTargetSet: false,
@@ -476,7 +474,6 @@ io.on("connection", (socket) => {
 
     setClueGiver(room, userId);
     room.state.disableRandomMaker = false
-    room.state.disableSubmitClue = false
     console.log(`🎯 ${user.name} (${userId}) is now Clue Giver in room ${roomId}`);
 
     updateRoomState(roomId, room);
@@ -756,10 +753,14 @@ io.on("connection", (socket) => {
     if (!room) return
     if (!canControlRoom(socket, room, ['clueGiver'])) return rejectUnauthorized(socket, 'submitClue');
 
-    room.state.clue=  clue
-    room.state.disableSubmitClue = true
+    // ส่งคำใบ้ใหม่ทับของเดิมได้เรื่อย ๆ (ไม่ล็อกหลังส่งครั้งแรก)
+    if (typeof clue !== 'string') return
+    const trimmedClue = clue.trim()
+    if (!trimmedClue) return
+
+    room.state.clue = trimmedClue.slice(0, CLUE_MAX_LENGTH)
     updateRoomState(roomId, room)
-    console.log('The clue is : ', clue)
+    console.log('The clue is : ', room.state.clue)
   })
 
 

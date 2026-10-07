@@ -28,7 +28,6 @@ export type GameState = {
   // null = ยังไม่มีสิทธิ์เห็นตำแหน่งเป้า (server ไม่ส่งมา)
   markerRotation: number | null;
   disableRandomMaker: boolean;
-  disableSubmitClue: boolean;
   // ---------- รอบการเล่น / การคิดคะแนน (ดูกฎใน src/server/game/scoring.ts) ----------
   leftRightGuess: LeftRightGuess | null;
   isRoundLocked: boolean;
