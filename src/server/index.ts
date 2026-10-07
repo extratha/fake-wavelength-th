@@ -80,8 +80,11 @@ function cancelRoomDeletion(roomId: string) {
 }
 
 function updateRoomState(roomId: string, room: RoomType) {
-  const gameStateWithUsers: GameState = {
-    ...room.state,
+  // allPairWords ใช้แค่ฝั่ง server (สุ่มคำ) ไม่ต้องส่งไป client ทุกครั้ง เพื่อลดขนาด payload
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { allPairWords, ...stateForClient } = room.state;
+  const gameStateWithUsers: Omit<GameState, 'allPairWords'> = {
+    ...stateForClient,
     hostId: room.hostId,
     users: Array.from(room.users.values()),
   };
@@ -253,6 +256,20 @@ io.on("connection", (socket) => {
       if (room.users.has(userId)) {
         room.users.delete(userId);
         console.log(`User ${userId} removed from room ${roomId} on disconnect`);
+
+        // ถ้า host หลุด ให้ตั้ง host ใหม่ (เหมือน leaveRoom) ไม่งั้นห้องจะไม่มีใครควบคุมได้
+        if (room.hostId === userId) {
+          const remainingUsers = Array.from(room.users.values());
+          if (remainingUsers.length > 0) {
+            const newHost = remainingUsers[Math.floor(Math.random() * remainingUsers.length)];
+            setNewHost(roomId, newHost.userId)
+          } else {
+            room.hostId = "";
+          }
+        }
+
+        // แจ้งคนที่เหลือในห้อง ให้รายชื่อผู้เล่นอัปเดต
+        updateRoomState(roomId, room);
 
         if (room.users.size === 0 && !roomTimeouts[roomId]) {
           scheduleRoomDeletion(roomId);
@@ -461,15 +478,6 @@ io.on("connection", (socket) => {
     resetPairWords(room)
     updateRoomState(roomId, room)
     console.log('Reset pair word success ')
-  })
-
-  socket.on('setDisableRandomMaker', ({ roomId }) => {
-    const room = rooms[roomId]
-    if (!room) return
-
-    room.state.disableRandomMaker = true
-    updateRoomState(roomId, room)
-    console.log('random maker has been disabled ')
   })
 
   socket.on('setDisableRandomMaker', ({ roomId }) => {

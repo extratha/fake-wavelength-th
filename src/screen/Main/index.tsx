@@ -32,7 +32,8 @@ export default function MainScreen() {
     setIsHost(userId === profile?.userId);
   };
   const handleLeftRoom = () => {
-    router.back()
+    // ใช้ replace ไป lobby ตรง ๆ แทน router.back() ที่อาจย้อนไปหน้าอื่นที่ไม่ใช่ lobby
+    router.replace('/lobby?error=คุณถูกเชิญออกจากห้อง')
   }
   const handleGameStateUpdate = (state: GameState) => {
     setIsClueGiver(state.clueGiver === profile.userId)
@@ -100,7 +101,10 @@ export default function MainScreen() {
     window.addEventListener("beforeunload", leaveRoomOnUnload);
 
     return () => {
+      // ถอด listener ชุดเดียวกับที่ลงทะเบียนในรอบนี้ ไม่งั้น listener จะสะสมทุกครั้งที่ profile เปลี่ยน
       socket.off("newHost", handleNewHost);
+      socket.off('forceLeftRoom', handleLeftRoom);
+      socket.off("gameStateUpdate", handleGameStateUpdate);
       window.removeEventListener("beforeunload", leaveRoomOnUnload);
     };
     //eslint-disable-next-line react-hooks/exhaustive-deps

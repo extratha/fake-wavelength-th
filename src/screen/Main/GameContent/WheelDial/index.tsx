@@ -5,6 +5,7 @@ import { socket } from "@/lib/socket";
 import { GameState } from "..";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import Image from "next/image";
+import { preload } from "react-dom";
 
 // import ImageWheelScore from "../../../../../public/wheelBGnum.png";
 // import ImageWheelScreen from "../../../../assets/wheelScreen.png";
@@ -20,6 +21,9 @@ type WheelDialProps = {
 
 const WheelDial = ({ gameState }: WheelDialProps) => {
   const { profile } = useUserProfile();
+
+  // โหลดรูปคะแนนแบบเปิดไว้ล่วงหน้า ตอนกดเปิดคะแนนจะได้ไม่กระพริบรอโหลด
+  preload("https://res.cloudinary.com/dpya79wdj/image/upload/w_1000,h_1000,c_limit/v1753418311/wheelBGnum_rcrfvd.png", { as: "image" });
 
   const [modalOptions, setModalOptions] = useState({
     open: false,
@@ -37,7 +41,8 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
     if (deg > 0 && gameState.dialRotation >= 90) return;
     if (deg < 0 && gameState.dialRotation <= -90) return;
 
-    const newRotation = gameState.dialRotation + deg;
+    // clamp ไว้ในช่วง -90 ถึง 90 กันกรณีเช่นอยู่ที่ 85 แล้วกด +10 เป็น 95
+    const newRotation = Math.min(90, Math.max(-90, gameState.dialRotation + deg));
 
     socket.emit("updateDialRotation", {
       roomId: gameState.roomId,
@@ -141,7 +146,8 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
                 "https://res.cloudinary.com/dpya79wdj/image/upload/w_800,h_800,c_limit/v1753419058/chromeBasic_dvojai.png"
               }
               alt=""
-              loading="lazy"
+              loading="eager"
+              unoptimized
               width={0}
               height={0}
               sizes="100vw"
@@ -167,7 +173,8 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
                 "https://res.cloudinary.com/dpya79wdj/image/upload/w_1000,h_1000,c_limit/v1753419059/wheelScreen_nttzdb.png"
               }
               alt=""
-              loading="lazy"
+              loading="eager"
+              unoptimized
               width={0}
               height={0}
               sizes="100vw"
@@ -190,7 +197,8 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
                     "https://res.cloudinary.com/dpya79wdj/image/upload/w_1000,h_1000,c_limit/v1753455560/wheelBGnum_hide_fempdb.png"
                   }
                   alt=""
-                  loading="lazy"
+                  loading="eager"
+                  unoptimized
                   width={0}
                   height={0}
                   sizes="100vw"
@@ -200,7 +208,8 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
                     "https://res.cloudinary.com/dpya79wdj/image/upload/w_1000,h_1000,c_limit/v1753418311/wheelBGnum_rcrfvd.png"
                   }
                   alt=""
-                  loading="lazy"
+                  loading="eager"
+                  unoptimized
                   width={0}
                   height={0}
                   sizes="100vw"
@@ -223,7 +232,8 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
                 "https://res.cloudinary.com/dpya79wdj/image/upload/w_900,h_900,c_limit/v1753419058/wheelDial_xpfqxq.png"
               }
               alt=""
-              loading="lazy"
+              loading="eager"
+              unoptimized
               width={0}
               height={0}
               sizes="100vw"

@@ -31,9 +31,16 @@ export default function Lobby() {
 	socketRef.current = socket
 	const socketCurrent = socketRef.current;
 
-	socketCurrent.on("updateRooms", (rooms: string[]) => {
-		setAvailableRooms(rooms);
-	});
+	// ลงทะเบียน listener ครั้งเดียว และถอดออกตอนออกจากหน้า (เดิมอยู่ใน render ทำให้ listener เพิ่มทุกครั้งที่ re-render)
+	useEffect(() => {
+		const handleUpdateRooms = (rooms: string[]) => {
+			setAvailableRooms(rooms);
+		};
+		socketCurrent.on("updateRooms", handleUpdateRooms);
+		return () => {
+			socketCurrent.off("updateRooms", handleUpdateRooms);
+		};
+	}, [socketCurrent]);
 
 	useEffect(() => {
 		if (!profile.userId) {
@@ -122,6 +129,8 @@ export default function Lobby() {
 				if (response.success) {
 					router.push(`/main?room=${roomIdInput}`);
 				} else {
+					// ต้องปิด loading ก่อน ไม่งั้นจอจะค้างที่ FullScreenLoading และ modal error ไม่แสดง
+					setIsLoading(false)
 					setModalOptions({
 						open: true,
 						message: response.message || "สร้างห้องไม่สำเร็จ",
