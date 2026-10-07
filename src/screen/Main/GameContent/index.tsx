@@ -3,6 +3,7 @@
 import { useUserProfile } from "@/hooks/useUserProfile";
 import WheelDial from "./WheelDial";
 import TeamManagement, { TeamKey } from "./TeamManagement";
+import type { LeftRightGuess, RoundResult } from "@/server/game/scoring";
 
 export type PairWord = {
   words: [string, string];
@@ -28,6 +29,13 @@ export type GameState = {
   markerRotation: number | null;
   disableRandomMaker: boolean;
   disableSubmitClue: boolean;
+  // ---------- รอบการเล่น / การคิดคะแนน (ดูกฎใน src/server/game/scoring.ts) ----------
+  leftRightGuess: LeftRightGuess | null;
+  isRoundLocked: boolean;
+  isTargetSet: boolean;
+  roundNumber: number;
+  roundResult: RoundResult | null;
+  winner: TeamKey | null;
 };
 
 type GameContentProps = {

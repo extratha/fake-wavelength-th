@@ -3,6 +3,7 @@ import { createServer } from "http";
 import { Server, Socket } from "socket.io";
 import cors from "cors";
 import { pairWords as fullPairWords, PairWord } from './constant/pairWords';
+import { calculateRoundResult, getOpposingTeam, LeftRightGuess, RoundResult } from './game/scoring';
 
 declare module "socket.io" {
   interface Socket {
@@ -48,6 +49,18 @@ type GameState = {
   markerRotation: number;
   disableRandomMaker: boolean; 
   disableSubmitClue: boolean;
+  // ---------- รอบการเล่น / การคิดคะแนน ----------
+  // ทีมตรงข้ามแทงว่าเป้าอยู่ซ้ายหรือขวาของเข็ม
+  leftRightGuess: LeftRightGuess | null;
+  // true ตั้งแต่เปิดหน้าปัดครั้งแรกของรอบ: ล็อกการแทงซ้าย/ขวา และล็อกเข็ม
+  isRoundLocked: boolean;
+  // สุ่มเป้าแล้วในรอบนี้หรือยัง (ถ้ายังไม่สุ่ม จะไม่คิดคะแนน)
+  isTargetSet: boolean;
+  roundNumber: number;
+  roundResult: RoundResult | null;
+  winner: TeamKey | null;
+  // ใช้หมุนคนให้คำใบ้ไปทีละคนในแต่ละทีม
+  lastClueGiverByTeam: Record<TeamKey, string | null>;
 };
 
 // state ที่ส่งไป client: ไม่มีรายการคำทั้งหมด และ markerRotation อาจเป็น null (ซ่อนจากคนที่ยังไม่ควรเห็น)
@@ -201,6 +214,96 @@ function rejectUnauthorized(socket: Socket, eventName: string) {
   console.log(`⛔ ${socket.userId ?? 'unknown user'} tried "${eventName}" without permission`);
 }
 
+// เวลาเดียวกับ animation เปิดหน้าปัดฝั่ง client: บวกคะแนนหลังฉากหมุนเปิดเสร็จ
+const SCREEN_REVEAL_DURATION_MS = 3000;
+
+function setClueGiver(room: RoomType, userId: string | null) {
+  room.state.clueGiver = userId;
+  const team = userId ? room.users.get(userId)?.team : undefined;
+  if (userId && (team === 'teamA' || team === 'teamB')) {
+    room.state.lastClueGiverByTeam[team] = userId;
+  }
+}
+
+// คนให้คำใบ้คนถัดไปของทีม (วนตามลำดับที่เข้าห้อง) ถ้าทีมไม่มีคนคืนค่า null
+function pickNextClueGiver(room: RoomType, team: TeamKey): string | null {
+  const teamMembers = Array.from(room.users.values()).filter((user) => user.team === team);
+  if (teamMembers.length === 0) return null;
+
+  const lastClueGiverIndex = teamMembers.findIndex(
+    (user) => user.userId === room.state.lastClueGiverByTeam[team]
+  );
+  return teamMembers[(lastClueGiverIndex + 1) % teamMembers.length].userId;
+}
+
+// ตอนเปิดหน้าปัด: ล็อกรอบทันที (กันแทงซ้าย/ขวาหลังเห็นเป้า) แล้วถ่ายค่าเข็ม/เป้า/คำแทงไว้
+// คะแนนจะถูกบวกหลัง animation เปิดเสร็จ โดยใช้ค่าที่ถ่ายไว้ ไม่ใช่ค่าตอนนั้น
+function lockRoundAndScheduleScoring(roomId: string, room: RoomType) {
+  if (room.state.isRoundLocked) return;
+  room.state.isRoundLocked = true;
+
+  const guessingTeam = room.state.turn;
+  if (!guessingTeam || !room.state.isTargetSet) {
+    console.log(`[Room ${roomId}] Screen opened without turn or target. Skip scoring.`);
+    return;
+  }
+
+  const roundNumberAtReveal = room.state.roundNumber;
+  const snapshot = {
+    guessingTeam,
+    dialRotation: room.state.dialRotation,
+    markerRotation: room.state.markerRotation,
+    leftRightGuess: room.state.leftRightGuess,
+  };
+
+  setTimeout(() => {
+    const currentRoom = rooms[roomId];
+    if (!currentRoom) return;
+
+    // คิดจากคะแนนปัจจุบัน (เผื่อ host แก้คะแนนด้วยมือระหว่างรอ animation)
+    const result = calculateRoundResult({ ...snapshot, scoresBeforeRound: currentRoom.state.scores });
+    currentRoom.state.scores = result.scoresAfterRound;
+    currentRoom.state.winner = result.winner;
+
+    // ถ้า host เริ่มรอบใหม่ไปแล้วระหว่างรอ ยังบวกคะแนนให้ แต่ไม่แสดงสรุปผลทับรอบใหม่
+    if (currentRoom.state.roundNumber === roundNumberAtReveal) {
+      currentRoom.state.roundResult = result;
+    }
+
+    console.log(`[Room ${roomId}] Round ${roundNumberAtReveal} scored:`, JSON.stringify({
+      guessingTeam: result.guessingTeam,
+      guessingTeamPoints: result.guessingTeamPoints,
+      leftRightGuess: result.leftRightGuess,
+      opposingTeamPoints: result.opposingTeamPoints,
+      nextTurn: result.nextTurn,
+      winner: result.winner,
+    }));
+    updateRoomState(roomId, currentRoom);
+  }, SCREEN_REVEAL_DURATION_MS);
+}
+
+// รีเซ็ตกระดานสำหรับรอบใหม่ (ไม่แตะคะแนน)
+function resetBoardForNewRound(room: RoomType) {
+  room.state.roundNumber += 1;
+  room.state.screenOpen = false;
+  room.state.clue = '';
+  room.state.dialRotation = 0;
+  room.state.markerRotation = 0;
+  room.state.disableRandomMaker = false;
+  room.state.disableSubmitClue = false;
+  room.state.leftRightGuess = null;
+  room.state.isRoundLocked = false;
+  room.state.isTargetSet = false;
+  room.state.roundResult = null;
+}
+
+function startRoundForTeam(room: RoomType, team: TeamKey) {
+  resetBoardForNewRound(room);
+  room.state.turn = team;
+  const nextClueGiver = pickNextClueGiver(room, team);
+  setClueGiver(room, nextClueGiver);
+}
+
 io.on("connection", (socket) => {
 
   socket.on("getAvailableRooms", (callback) => {
@@ -239,6 +342,13 @@ io.on("connection", (socket) => {
           markerRotation: 0,
           disableRandomMaker: false,
           disableSubmitClue: false,
+          leftRightGuess: null,
+          isRoundLocked: false,
+          isTargetSet: false,
+          roundNumber: 1,
+          roundResult: null,
+          winner: null,
+          lastClueGiverByTeam: { teamA: null, teamB: null },
         },
         hostId: userId,
       };
@@ -349,7 +459,7 @@ io.on("connection", (socket) => {
     const user = room.users.get(userId);
     if (!user) return;
 
-    room.state.clueGiver = userId;
+    setClueGiver(room, userId);
     room.state.disableRandomMaker = false
     room.state.disableSubmitClue = false
     console.log(`🎯 ${user.name} (${userId}) is now Clue Giver in room ${roomId}`);
@@ -406,6 +516,8 @@ io.on("connection", (socket) => {
     const room = rooms[roomId];
     if (!room) return;
     if (!isRoomMember(socket, room)) return rejectUnauthorized(socket, 'updateDialRotation');
+    // เปิดหน้าปัดแล้ว ล็อกเข็ม (คะแนนคิดจากตำแหน่งตอนเปิด)
+    if (room.state.isRoundLocked) return;
     room.state.dialRotation = rotation;
     console.log(`${userName} has updateDialRotation : ${rotation}`)
     updateRoomState(roomId, room);
@@ -417,6 +529,9 @@ io.on("connection", (socket) => {
     if (!canControlRoom(socket, room, ['host', 'clueGiver'])) return rejectUnauthorized(socket, 'toggleScreen');
 
     room.state.screenOpen = screenOpen;
+    if (screenOpen) {
+      lockRoundAndScheduleScoring(roomId, room);
+    }
     console.log(`${userName} has updated screenOpen : ${screenOpen}`)
     updateRoomState(roomId, room);
   });
@@ -426,9 +541,17 @@ io.on("connection", (socket) => {
     if (!room) return;
     if (!canControlRoom(socket, room, ['host', 'clueGiver'])) return rejectUnauthorized(socket, 'randomizeMarker');
 
+    // ห้ามสุ่มเป้าใหม่ตอนหน้าปัดเปิดอยู่ ไม่งั้นทุกคนจะเห็นเป้าใหม่ทันที
+    if (room.state.screenOpen) return;
+
     // สุ่มที่ server แทน client เพื่อไม่ให้คนกดสุ่ม (เช่น host) เห็นค่าใน network
     const rotation = Math.floor(Math.random() * 180) - 90;
     room.state.markerRotation = rotation;
+    // เป้าใหม่ = เริ่มรอบใหม่: ปลดล็อกการแทง/เข็ม และล้างผลรอบก่อน
+    room.state.isTargetSet = true;
+    room.state.isRoundLocked = false;
+    room.state.leftRightGuess = null;
+    room.state.roundResult = null;
     console.log(`${userName} has updated randomizeMarker`)
     updateRoomState(roomId, room);
   });
@@ -562,6 +685,55 @@ io.on("connection", (socket) => {
     room.state.disableRandomMaker = true
     updateRoomState(roomId, room)
     console.log('random maker has been disabled ')
+  })
+
+  socket.on('setLeftRightGuess', ({ roomId, guess }) => {
+    const room = rooms[roomId]
+    if (!room) return
+    if (!isRoomMember(socket, room)) return rejectUnauthorized(socket, 'setLeftRightGuess');
+    if (guess !== 'left' && guess !== 'right') return;
+
+    // แทงได้เฉพาะทีมตรงข้ามกับทีมที่กำลังเล่น
+    const guessingTeam = room.state.turn
+    const requesterTeam = room.users.get(socket.userId!)?.team
+    if (!guessingTeam || requesterTeam !== getOpposingTeam(guessingTeam)) {
+      return rejectUnauthorized(socket, 'setLeftRightGuess');
+    }
+
+    // ล็อกทันทีที่มีการเปิดหน้าปัด (เช็คที่ server กันยิง event เองหลังเห็นเป้า)
+    if (room.state.isRoundLocked || room.state.screenOpen) {
+      console.log(`🔒 ${socket.userId} tried to change left/right guess after reveal`)
+      return
+    }
+
+    room.state.leftRightGuess = guess
+    updateRoomState(roomId, room)
+  })
+
+  socket.on('startNextRound', ({ roomId }) => {
+    const room = rooms[roomId]
+    if (!room) return
+    if (!canControlRoom(socket, room, ['host'])) return rejectUnauthorized(socket, 'startNextRound');
+
+    // ใช้ตาที่ระบบคำนวณ (สลับทีม หรือ catch-up) ถ้าไม่มีผลรอบ ก็สลับทีมปกติ
+    const currentTurn = room.state.turn
+    const nextTurn = room.state.roundResult?.nextTurn ?? (currentTurn ? getOpposingTeam(currentTurn) : 'teamA')
+    startRoundForTeam(room, nextTurn)
+    updateRoomState(roomId, room)
+    console.log(`[Room ${roomId}] Next round ${room.state.roundNumber}: ${nextTurn}`)
+  })
+
+  socket.on('startNewGame', ({ roomId }) => {
+    const room = rooms[roomId]
+    if (!room) return
+    if (!canControlRoom(socket, room, ['host'])) return rejectUnauthorized(socket, 'startNewGame');
+
+    room.state.scores = { teamA: 0, teamB: 0 }
+    room.state.winner = null
+    room.state.lastClueGiverByTeam = { teamA: null, teamB: null }
+    startRoundForTeam(room, 'teamA')
+    updateRoomState(roomId, room)
+    console.log(`[Room ${roomId}] New game started`)
   })
 
   socket.on('submitClue', ({ roomId, clue }) => {

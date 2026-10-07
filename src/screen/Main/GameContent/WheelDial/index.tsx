@@ -12,6 +12,9 @@ import Modal from "@/component/Modal";
 import WordCard from "./WordCard";
 // หน้าปัดใช้ SVG แล้ว (เวอร์ชัน PNG เดิมเก็บไว้ที่ ./WheelPng แต่ไม่ได้ import เพื่อไม่ต้องโหลดรูป)
 import WheelSvg from "./WheelSvg";
+import LeftRightGuess from "./LeftRightGuess";
+import RoundResultPanel from "./RoundResultPanel";
+import { TeamKey } from "../TeamManagement";
 import { Eye, EyeClosed } from "lucide-react";
 
 type WheelDialProps = {
@@ -28,6 +31,9 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
 
   const isClueGiver = gameState.clueGiver === profile.userId;
   const isHost = gameState.hostId === profile.userId;
+  const myTeam = (gameState.users.find((user) => user.userId === profile.userId)?.team ?? null) as TeamKey | null;
+  // เปิดหน้าปัดแล้ว ล็อกเข็ม (server ก็ล็อก แต่ปิดปุ่มไว้ด้วยจะได้ไม่งง)
+  const isDialLocked = gameState.isRoundLocked;
 
   // ---------- ลากหมุนเข็ม ----------
   // ระหว่างลาก แสดงค่าในเครื่องตัวเองทันที (ไม่ต้องรอ server) แล้วค่อยส่งค่าไป server เป็นระยะ
@@ -88,6 +94,7 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
 
 
   const rotateDial = (deg: number) => {
+    if (isDialLocked) return;
     if (deg > 0 && gameState.dialRotation >= 90) return;
     if (deg < 0 && gameState.dialRotation <= -90) return;
 
@@ -157,11 +164,13 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
             showScoreZones={gameState.screenOpen || isClueGiver}
             peekScreen={peekScreen}
             isDraggingDial={isDraggingDial}
-            onDialDragStart={handleDialDragStart}
-            onDialDrag={handleDialDrag}
-            onDialDragEnd={handleDialDragEnd}
+            onDialDragStart={isDialLocked ? undefined : handleDialDragStart}
+            onDialDrag={isDialLocked ? undefined : handleDialDrag}
+            onDialDragEnd={isDialLocked ? undefined : handleDialDragEnd}
           />
         </div>
+
+        <RoundResultPanel gameState={gameState} isHost={isHost} />
 
         {/* Controls */}
         <div className=" w-full z-20 left-0 sm:mt-10 mx-auto" >
@@ -190,7 +199,7 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
                 </button>
 
             }
-            <div className="flex gap-2 items-center">
+            <div className={`flex gap-2 items-center ${isDialLocked ? "opacity-40 pointer-events-none" : ""}`}>
               <button onClick={() => rotateDial(-10)} className="w-10 h-10 px-3 py-1 bg-lightBrown rounded-[50px]">-</button>
               <button onClick={() => rotateDial(-1)} className="w-8 h-8 px-3 py-1 bg-lightBrown rounded-[50px]">-</button>
               <button onClick={() => rotateDial(1)} className="w-8 h-8 px-3 py-1 bg-lightBrown rounded-[50px] font-medium">+</button>
@@ -209,6 +218,8 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
               </button>
             )}
           </div>
+
+          <LeftRightGuess gameState={gameState} myTeam={myTeam} />
         </div>
       </div>
 

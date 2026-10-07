@@ -242,3 +242,20 @@ button:active {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* สรุปผลรอบ เลื่อนขึ้นมา */
+.round-result-in {
+  animation: roundResultIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes roundResultIn {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

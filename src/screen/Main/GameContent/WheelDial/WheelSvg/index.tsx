@@ -1,4 +1,5 @@
 import { CSSProperties, useEffect, useRef, useState } from "react";
+import { findZoneIndexUnderNeedle, SCORE_ZONES, ScoreZone } from "@/server/constant/scoreZones";
 
 // ระบบพิกัดของ SVG: viewBox 200 x 100 = ครึ่งวงกลมด้านบน
 // จุดศูนย์กลางหน้าปัดอยู่ที่ (100, 100) รัศมี 100 ส่วนครึ่งล่างอยู่นอก viewBox จึงถูกซ่อนอัตโนมัติ
@@ -19,15 +20,12 @@ const COLORS = {
   needle: "#ff5b3a",
 };
 
-// โซนคะแนน (องศาจากแนวตั้ง, ค่าบวก = หมุนตามเข็มนาฬิกา) วัดจากรูป wheelBGnum.png เดิม
-// export ไว้เพื่อใช้คำนวณคะแนนอัตโนมัติในอนาคต
-export const SCORE_ZONES = [
-  { score: 2, fromDeg: -18.75, toDeg: -11.25, color: COLORS.zoneScore2 },
-  { score: 3, fromDeg: -11.25, toDeg: -3.75, color: COLORS.zoneScore3 },
-  { score: 4, fromDeg: -3.75, toDeg: 3.75, color: COLORS.zoneScore4 },
-  { score: 3, fromDeg: 3.75, toDeg: 11.25, color: COLORS.zoneScore3 },
-  { score: 2, fromDeg: 11.25, toDeg: 18.75, color: COLORS.zoneScore2 },
-];
+// โซนคะแนนใช้ตารางเดียวกับ server ที่คิดคะแนน (ตำแหน่งที่วาดจะตรงกับคะแนนที่ได้จริงเสมอ)
+const ZONE_COLOR_BY_SCORE: Record<ScoreZone["score"], string> = {
+  2: COLORS.zoneScore2,
+  3: COLORS.zoneScore3,
+  4: COLORS.zoneScore4,
+};
 
 const MARKER_RADIUS = 99;
 const ZONE_LABEL_RADIUS = 91;
@@ -75,15 +73,6 @@ const MARKER_SPIN_DURATION_MS = 2500;
 const MARKER_SPIN_EXTRA_TURNS = 2;
 const DIAL_MIN_DEG = -90;
 const DIAL_MAX_DEG = 90;
-
-// หาโซนคะแนนที่เข็มชี้อยู่ (เทียบมุมเข็มกับตำแหน่งเป้า) ถ้าไม่โดนโซนไหนเลยคืนค่า -1
-// ใช้แค่แสดงผล ยังไม่ได้ใช้คิดคะแนนจริง
-const findZoneIndexUnderNeedle = (dialRotation: number, markerRotation: number) => {
-  const needleAngleFromMarker = dialRotation - markerRotation;
-  return SCORE_ZONES.findIndex(
-    (zone) => needleAngleFromMarker >= zone.fromDeg && needleAngleFromMarker < zone.toDeg
-  );
-};
 
 type WheelSvgProps = {
   dialRotation: number;
@@ -221,7 +210,7 @@ const WheelSvg = ({
                 className={zoneIndex === zoneIndexUnderNeedle ? "wheel-zone-hit" : undefined}
                 style={{ animationDelay: `${SCREEN_REVEAL_DURATION_MS}ms` }}
               >
-                <path d={wedgePath(zone.fromDeg, zone.toDeg, MARKER_RADIUS)} fill={zone.color} />
+                <path d={wedgePath(zone.fromDeg, zone.toDeg, MARKER_RADIUS)} fill={ZONE_COLOR_BY_SCORE[zone.score]} />
                 <text
                   x={labelPosition.x}
                   y={labelPosition.y}
