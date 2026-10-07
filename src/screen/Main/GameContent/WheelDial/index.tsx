@@ -71,10 +71,9 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
   };
 
   const randomizeMarker = () => {
-    const randDeg = Math.floor(Math.random() * 180) - 90;
+    // server เป็นคนสุ่มตำแหน่งเป้า (ไม่ส่งค่าจาก client เพื่อกันโกง)
     socket.emit("randomizeMarker", {
       roomId: gameState.roomId,
-      rotation: randDeg,
       userName: profile.userName,
     });
     socket.emit('setDisableRandomMaker', {

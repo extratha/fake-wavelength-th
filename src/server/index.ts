@@ -50,6 +50,11 @@ type GameState = {
   disableSubmitClue: boolean;
 };
 
+// state ที่ส่งไป client: ไม่มีรายการคำทั้งหมด และ markerRotation อาจเป็น null (ซ่อนจากคนที่ยังไม่ควรเห็น)
+type ClientGameState = Omit<GameState, 'allPairWords' | 'markerRotation'> & {
+  markerRotation: number | null;
+};
+
 type RoomType = {
   users: Map<string, { name: string; userId: string; team?: string }>;
   state: GameState;
@@ -83,13 +88,26 @@ function updateRoomState(roomId: string, room: RoomType) {
   // allPairWords ใช้แค่ฝั่ง server (สุ่มคำ) ไม่ต้องส่งไป client ทุกครั้ง เพื่อลดขนาด payload
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { allPairWords, ...stateForClient } = room.state;
-  const gameStateWithUsers: Omit<GameState, 'allPairWords'> = {
+  const gameStateWithUsers: ClientGameState = {
     ...stateForClient,
     hostId: room.hostId,
     users: Array.from(room.users.values()),
   };
   console.log('server emit game state to client ')
-  io.to(roomId).emit("gameStateUpdate", gameStateWithUsers);
+
+  // ส่งแยกทีละคน: ตำแหน่งเป้า (markerRotation) ส่งให้เฉพาะคนให้คำใบ้ หรือทุกคนเมื่อเปิดคะแนนแล้ว
+  // ถ้าส่งให้ทุกคนแล้วแค่ซ่อนใน UI ผู้เล่นจะเปิด DevTools ดูคำตอบได้
+  const socketIdsInRoom = io.sockets.adapter.rooms.get(roomId) ?? new Set<string>();
+  for (const socketId of socketIdsInRoom) {
+    const roomSocket = io.sockets.sockets.get(socketId);
+    if (!roomSocket) continue;
+
+    const canSeeMarker = room.state.screenOpen || roomSocket.userId === room.state.clueGiver;
+    roomSocket.emit("gameStateUpdate", {
+      ...gameStateWithUsers,
+      markerRotation: canSeeMarker ? room.state.markerRotation : null,
+    });
+  }
 }
 
 function setNewHost(roomId: string, userId: string) {
@@ -403,13 +421,15 @@ io.on("connection", (socket) => {
     updateRoomState(roomId, room);
   });
 
-  socket.on("randomizeMarker", ({ roomId, rotation, userName }) => {
+  socket.on("randomizeMarker", ({ roomId, userName }) => {
     const room = rooms[roomId];
     if (!room) return;
     if (!canControlRoom(socket, room, ['host', 'clueGiver'])) return rejectUnauthorized(socket, 'randomizeMarker');
 
+    // สุ่มที่ server แทน client เพื่อไม่ให้คนกดสุ่ม (เช่น host) เห็นค่าใน network
+    const rotation = Math.floor(Math.random() * 180) - 90;
     room.state.markerRotation = rotation;
-    console.log(`${userName} has updated randomizeMarker : ${rotation}`)
+    console.log(`${userName} has updated randomizeMarker`)
     updateRoomState(roomId, room);
   });
 

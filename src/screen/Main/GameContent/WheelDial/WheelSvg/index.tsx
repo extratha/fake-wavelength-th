@@ -70,7 +70,7 @@ const FRAME_PATH = `M 0 0 H ${CENTER_X * 2} V ${CENTER_Y} A ${RADIUS} ${RADIUS} 
 
 type WheelSvgProps = {
   dialRotation: number;
-  markerRotation: number;
+  markerRotation: number | null;
   screenOpen: boolean;
   showScoreZones: boolean;
   peekScreen: boolean;
@@ -90,7 +90,7 @@ const WheelSvg = ({ dialRotation, markerRotation, screenOpen, showScoreZones, pe
       aria-label="หน้าปัด Wavelength"
     >
       {/* Wheel Marker: วงกลมสีเทา + โซนคะแนน (ซ่อนโซนถ้าผู้เล่นยังไม่ควรเห็น) */}
-      <g style={rotateAroundCenter(markerRotation)}>
+      <g style={rotateAroundCenter(markerRotation ?? 0)}>
         <circle cx={CENTER_X} cy={CENTER_Y} r={MARKER_RADIUS} fill={COLORS.markerBackground} />
         {showScoreZones &&
           SCORE_ZONES.map((zone) => {

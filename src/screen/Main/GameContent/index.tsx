@@ -24,7 +24,8 @@ export type GameState = {
   hostId: string;
   dialRotation: number;
   screenOpen: boolean;
-  markerRotation: number;
+  // null = ยังไม่มีสิทธิ์เห็นตำแหน่งเป้า (server ไม่ส่งมา)
+  markerRotation: number | null;
   disableRandomMaker: boolean;
   disableSubmitClue: boolean;
 };
