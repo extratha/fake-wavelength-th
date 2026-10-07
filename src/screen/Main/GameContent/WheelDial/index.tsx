@@ -1,11 +1,7 @@
-import debounce from 'lodash.debounce';
-import { useEffect, useRef, useState } from "react";
-import clsx from "clsx";
+import { useState } from "react";
 import { socket } from "@/lib/socket";
 import { GameState } from "..";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import Image from "next/image";
-import { preload } from "react-dom";
 
 // import ImageWheelScore from "../../../../../public/wheelBGnum.png";
 // import ImageWheelScreen from "../../../../assets/wheelScreen.png";
@@ -13,6 +9,8 @@ import { preload } from "react-dom";
 // import ImageChromeBasic from "../../../../assets/chromeBasic.png";
 import Modal from "@/component/Modal";
 import WordCard from "./WordCard";
+// หน้าปัดใช้ SVG แล้ว (เวอร์ชัน PNG เดิมเก็บไว้ที่ ./WheelPng แต่ไม่ได้ import เพื่อไม่ต้องโหลดรูป)
+import WheelSvg from "./WheelSvg";
 import { Eye, EyeClosed } from "lucide-react";
 
 type WheelDialProps = {
@@ -22,19 +20,14 @@ type WheelDialProps = {
 const WheelDial = ({ gameState }: WheelDialProps) => {
   const { profile } = useUserProfile();
 
-  // โหลดรูปคะแนนแบบเปิดไว้ล่วงหน้า ตอนกดเปิดคะแนนจะได้ไม่กระพริบรอโหลด
-  preload("https://res.cloudinary.com/dpya79wdj/image/upload/w_1000,h_1000,c_limit/v1753418311/wheelBGnum_rcrfvd.png", { as: "image" });
-
   const [modalOptions, setModalOptions] = useState({
     open: false,
   });
   const [peekScreen, setIsPeekScreen] = useState(false);
-  const [wheelHeight, setWheelHeight] = useState("");
-  const wheelWrapRef = useRef<HTMLDivElement | null>(null);
-  const wheelControl = useRef<HTMLDivElement | null>(null);
 
   const isClueGiver = gameState.clueGiver === profile.userId;
   const isHost = gameState.hostId === profile.userId;
+
 
 
   const rotateDial = (deg: number) => {
@@ -94,156 +87,24 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
     setIsPeekScreen(!peekScreen);
   };
 
-  useEffect(() => {
-    const debouncedUpdate = debounce(() => {
-      if (wheelWrapRef.current) {
-        const width = wheelWrapRef.current.clientWidth;
-        const height = wheelWrapRef.current.clientHeight;
-        console.log(height, width)
-        if (height > width) {
-          setWheelHeight(`${width / 2}px`);
-        } else  {
-          setWheelHeight(`${wheelWrapRef.current.clientHeight / 2}px`);
-        }
-      }
-    }, 200);
-
-    debouncedUpdate();
-
-    window.addEventListener("resize", debouncedUpdate);
-    return () => {
-      window.removeEventListener("resize", debouncedUpdate);
-    };
-  }, []);
-
   return (
     <div className="relative w-full p2">
       <div
         id="wheelWrap"
-        ref={wheelWrapRef}
         className="relative w-[calc(100%-60px)] max-w-[1200px] aspect-square mx-auto "
       >
-        <div
-          id="wheel"
-          className="relative w-full overflow-hidden border-4 border-[#4b352a]"
-          style={{
-            height: wheelHeight,
-          }}
-        >
-          {/* <div className="absolute left-0 top-[-8px] w-full h-3  bg-darkBrown"
-            style={{ zIndex: 12 }}
-          /> */}
-
-          {/* Wheel Frame */}
-          <div
-            className="absolute left-0  w-full"
-            style={{
-              zIndex: 11,
-            }}
-          >
-            <Image
-              src={
-                "https://res.cloudinary.com/dpya79wdj/image/upload/w_800,h_800,c_limit/v1753419058/chromeBasic_dvojai.png"
-              }
-              alt=""
-              loading="eager"
-              unoptimized
-              width={0}
-              height={0}
-              sizes="100vw"
-              className="w-full h-auto"
-            ></Image>
-          </div>
-          {/* <div id="hider" ref={wheelWrapRef} className="absolute bottom-[-2px] left-0 w-full h-[5px] bg-darkBrown "
-            style={{ transform: 'translateY(-1px)', zIndex: 11 }}
-          /> */}
-
-          {/* Wheel Screen */}
-          <div
-            id="wheelScreen"
-            className={clsx(
-              "absolute left-0 w-full  transition-transform duration-[3000ms]  ",
-              gameState?.screenOpen ? "rotate-[180deg]" : "rotate-0",
-              peekScreen ? "opacity-0" : ""
-            )}
-            style={{ zIndex: 5, }}
-          >
-            <Image
-              src={
-                "https://res.cloudinary.com/dpya79wdj/image/upload/w_1000,h_1000,c_limit/v1753419059/wheelScreen_nttzdb.png"
-              }
-              alt=""
-              loading="eager"
-              unoptimized
-              width={0}
-              height={0}
-              sizes="100vw"
-              className="w-full h-auto"
-            ></Image>
-          </div>
-
-          {/* Wheel Marker */}
-          <div
-            className="absolute top-0 left-0 w-full  p-1 flex items-center justify-center z-1 scale-[0.8]"
-            style={{
-              transform: `rotate(${gameState.markerRotation}deg)`,
-              zIndex: 1,
-            }}
-          >
-            {
-              !gameState?.screenOpen && !isClueGiver ?
-                <Image
-                  src={
-                    "https://res.cloudinary.com/dpya79wdj/image/upload/w_1000,h_1000,c_limit/v1753455560/wheelBGnum_hide_fempdb.png"
-                  }
-                  alt=""
-                  loading="eager"
-                  unoptimized
-                  width={0}
-                  height={0}
-                  sizes="100vw"
-                  className="w-full h-auto"
-                /> : <Image
-                  src={
-                    "https://res.cloudinary.com/dpya79wdj/image/upload/w_1000,h_1000,c_limit/v1753418311/wheelBGnum_rcrfvd.png"
-                  }
-                  alt=""
-                  loading="eager"
-                  unoptimized
-                  width={0}
-                  height={0}
-                  sizes="100vw"
-                  className="w-full h-auto"
-                />
-            }
-
-          </div>
-
-          {/* Wheel Dial */}
-          <div
-            className="absolute top-0 left-0 w-full z-10 transition-transform duration-300 "
-            style={{
-              transform: `rotate(${gameState.dialRotation}deg)`,
-              scale: 2,
-            }}
-          >
-            <Image
-              src={
-                "https://res.cloudinary.com/dpya79wdj/image/upload/w_900,h_900,c_limit/v1753419058/wheelDial_xpfqxq.png"
-              }
-              alt=""
-              loading="eager"
-              unoptimized
-              width={0}
-              height={0}
-              sizes="100vw"
-              className="w-full h-auto"
-            ></Image>
-          </div>
+        <div id="wheelSvg" className="relative w-full overflow-hidden border-4 border-[#4b352a]">
+          <WheelSvg
+            dialRotation={gameState.dialRotation}
+            markerRotation={gameState.markerRotation}
+            screenOpen={gameState.screenOpen}
+            showScoreZones={gameState.screenOpen || isClueGiver}
+            peekScreen={peekScreen}
+          />
         </div>
 
         {/* Controls */}
-        <div ref={wheelControl} className=" w-full z-20 left-0 sm:mt-10 mx-auto" >
+        <div className=" w-full z-20 left-0 sm:mt-10 mx-auto" >
           {
             isClueGiver && <div className="w-full  top-[50%] left-[-36%] sm:left-0 mx-auto flex justify-center z-50">
               <button onClick={handlePeekScreen} className="w-14 h-14  px-3 py-1 bg-lightBrown rounded-[300px] text-darkBrown font-medium justify-items-center">
