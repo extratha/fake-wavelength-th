@@ -518,6 +518,10 @@ io.on("connection", (socket) => {
     if (!isRoomMember(socket, room)) return rejectUnauthorized(socket, 'updateDialRotation');
     // เปิดหน้าปัดแล้ว ล็อกเข็ม (คะแนนคิดจากตำแหน่งตอนเปิด)
     if (room.state.isRoundLocked) return;
+    // คนให้คำใบ้รู้เป้าอยู่แล้ว ห้ามหมุนเข็มหลังสุ่มเป้า (เป็นหน้าที่ของทีมที่เดา)
+    if (room.state.isTargetSet && socket.userId === room.state.clueGiver) {
+      return rejectUnauthorized(socket, 'updateDialRotation');
+    }
     room.state.dialRotation = rotation;
     console.log(`${userName} has updateDialRotation : ${rotation}`)
     updateRoomState(roomId, room);
