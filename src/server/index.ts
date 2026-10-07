@@ -414,8 +414,12 @@ io.on("connection", (socket) => {
     const users = Array.from(room.users.values())
     if (users.length === 0) return
 
-    // สุ่มผู้เล่นทั้งหมด
-    const shuffledUsers = users.sort(() => Math.random() - 0.5)
+    // สุ่มผู้เล่นทั้งหมด (Fisher-Yates: ทุกลำดับมีโอกาสเท่ากัน ต่างจาก sort(() => Math.random() - 0.5) ที่เอนเอียง)
+    const shuffledUsers = [...users]
+    for (let i = shuffledUsers.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffledUsers[i], shuffledUsers[j]] = [shuffledUsers[j], shuffledUsers[i]];
+    }
 
     let teamA: typeof users = []
     let teamB: typeof users = []
