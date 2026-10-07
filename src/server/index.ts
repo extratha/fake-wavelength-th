@@ -124,6 +124,47 @@ function resetPairWords(room: RoomType) {
   room.state.pairWords = null;
 }
 
+const DISCONNECT_GRACE_PERIOD_MS = 5000;
+
+// ผู้ใช้คนนี้ยังมี socket ที่ต่ออยู่ในห้องนี้ไหม (เช่น reconnect กลับมาแล้ว หรือเปิดอีกแท็บอยู่)
+function isUserConnectedToRoom(userId: string, roomId: string) {
+  for (const [, connectedSocket] of io.sockets.sockets) {
+    if (connectedSocket.userId === userId && connectedSocket.rooms.has(roomId)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function removeDisconnectedUser(userId: string) {
+  for (const roomId in rooms) {
+    const room = rooms[roomId];
+    if (!room.users.has(userId)) continue;
+    if (isUserConnectedToRoom(userId, roomId)) continue;
+
+    room.users.delete(userId);
+    console.log(`User ${userId} removed from room ${roomId} on disconnect`);
+
+    // ถ้า host หลุด ให้ตั้ง host ใหม่ (เหมือน leaveRoom) ไม่งั้นห้องจะไม่มีใครควบคุมได้
+    if (room.hostId === userId) {
+      const remainingUsers = Array.from(room.users.values());
+      if (remainingUsers.length > 0) {
+        const newHost = remainingUsers[Math.floor(Math.random() * remainingUsers.length)];
+        setNewHost(roomId, newHost.userId)
+      } else {
+        room.hostId = "";
+      }
+    }
+
+    // แจ้งคนที่เหลือในห้อง ให้รายชื่อผู้เล่นอัปเดต
+    updateRoomState(roomId, room);
+
+    if (room.users.size === 0 && !roomTimeouts[roomId]) {
+      scheduleRoomDeletion(roomId);
+    }
+  }
+}
+
 io.on("connection", (socket) => {
 
   socket.on("getAvailableRooms", (callback) => {
@@ -251,31 +292,9 @@ io.on("connection", (socket) => {
 
     console.log(`❌ User ${userId} disconnected: ${reason}`);
 
-    for (const roomId in rooms) {
-      const room = rooms[roomId];
-      if (room.users.has(userId)) {
-        room.users.delete(userId);
-        console.log(`User ${userId} removed from room ${roomId} on disconnect`);
-
-        // ถ้า host หลุด ให้ตั้ง host ใหม่ (เหมือน leaveRoom) ไม่งั้นห้องจะไม่มีใครควบคุมได้
-        if (room.hostId === userId) {
-          const remainingUsers = Array.from(room.users.values());
-          if (remainingUsers.length > 0) {
-            const newHost = remainingUsers[Math.floor(Math.random() * remainingUsers.length)];
-            setNewHost(roomId, newHost.userId)
-          } else {
-            room.hostId = "";
-          }
-        }
-
-        // แจ้งคนที่เหลือในห้อง ให้รายชื่อผู้เล่นอัปเดต
-        updateRoomState(roomId, room);
-
-        if (room.users.size === 0 && !roomTimeouts[roomId]) {
-          scheduleRoomDeletion(roomId);
-        }
-      }
-    }
+    // รอสักครู่ก่อนลบออกจากห้อง เผื่อเน็ตหลุดชั่วคราว (client จะ joinRoom ใหม่เองตอน reconnect)
+    // ถ้าปิดหน้า/รีเฟรช client จะส่ง leaveRoom มาก่อนอยู่แล้ว จึงไม่ต้องรอ
+    setTimeout(() => removeDisconnectedUser(userId), DISCONNECT_GRACE_PERIOD_MS);
   });
 
   socket.on("reconnect", () => {

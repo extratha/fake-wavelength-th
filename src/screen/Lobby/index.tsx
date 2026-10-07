@@ -83,6 +83,12 @@ export default function Lobby() {
 	}, []);
 
 	useEffect(() => {
+		// มาจากลิงก์ห้องแต่ยังไม่ได้ตั้งชื่อ: เติมเลขห้องให้เลย
+		const roomFromLink = searchParams.get('room')
+		if (roomFromLink) {
+			setRoomIdInput(roomFromLink)
+		}
+
 		const error = searchParams.get('error')
 		if (error) {
 
@@ -93,6 +99,7 @@ export default function Lobby() {
 
 			const params = new URLSearchParams(searchParams)
 			params.delete('error')
+			params.delete('room')
 			const path = window.location.pathname + (params.toString() ? `?${params.toString()}` : '')
 			router.replace(path, { scroll: false })
 		}
