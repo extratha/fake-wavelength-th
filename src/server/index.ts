@@ -210,6 +210,21 @@ function canControlRoom(socket: Socket, room: RoomType, allowedRoles: RoomRole[]
   return false;
 }
 
+// หมุนเข็มได้เฉพาะสมาชิกทีมเดียวกับคนให้คำใบ้ ที่ไม่ใช่คนให้คำใบ้เอง (ตามกฎ Wavelength สากล)
+// ทีมตรงข้าม, host ที่ไม่ได้อยู่ทีมนั้น และคนที่ยังไม่เลือกทีมหมุนไม่ได้
+// ถ้ายังไม่มีคนให้คำใบ้ (หรือเขายังไม่มีทีม) จะไม่มีใครหมุนได้
+function canRotateDial(socket: Socket, room: RoomType) {
+  if (!isRoomMember(socket, room)) return false;
+
+  const clueGiverId = room.state.clueGiver;
+  if (!clueGiverId || socket.userId === clueGiverId) return false;
+
+  const guessingTeam = room.users.get(clueGiverId)?.team;
+  if (!guessingTeam) return false;
+
+  return room.users.get(socket.userId!)?.team === guessingTeam;
+}
+
 function rejectUnauthorized(socket: Socket, eventName: string) {
   console.log(`⛔ ${socket.userId ?? 'unknown user'} tried "${eventName}" without permission`);
 }
@@ -515,13 +530,9 @@ io.on("connection", (socket) => {
   socket.on("updateDialRotation", ({ roomId, rotation, userName }) => {
     const room = rooms[roomId];
     if (!room) return;
-    if (!isRoomMember(socket, room)) return rejectUnauthorized(socket, 'updateDialRotation');
+    if (!canRotateDial(socket, room)) return rejectUnauthorized(socket, 'updateDialRotation');
     // เปิดหน้าปัดแล้ว ล็อกเข็ม (คะแนนคิดจากตำแหน่งตอนเปิด)
     if (room.state.isRoundLocked) return;
-    // คนให้คำใบ้รู้เป้าอยู่แล้ว ห้ามหมุนเข็มหลังสุ่มเป้า (เป็นหน้าที่ของทีมที่เดา)
-    if (room.state.isTargetSet && socket.userId === room.state.clueGiver) {
-      return rejectUnauthorized(socket, 'updateDialRotation');
-    }
     room.state.dialRotation = rotation;
     console.log(`${userName} has updateDialRotation : ${rotation}`)
     updateRoomState(roomId, room);

@@ -40,9 +40,12 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
   }, [gameState.roundNumber, isClueGiver]);
 
   const myTeam = (gameState.users.find((user) => user.userId === profile.userId)?.team ?? null) as TeamKey | null;
-  // เปิดหน้าปัดแล้ว ล็อกเข็ม (server ก็ล็อก แต่ปิดปุ่มไว้ด้วยจะได้ไม่งง)
-  // คนให้คำใบ้รู้เป้าอยู่แล้ว จึงหมุนเข็มไม่ได้หลังสุ่มเป้า (server เช็คซ้ำอีกชั้น)
-  const isDialLocked = gameState.isRoundLocked || (isClueGiver && gameState.isTargetSet);
+  // หมุนเข็มได้เฉพาะสมาชิกทีมเดียวกับคนให้คำใบ้ ที่ไม่ใช่คนให้คำใบ้เอง และต้องยังไม่เปิดหน้าปัด
+  // (server เช็คซ้ำอีกชั้น ที่นี่แค่ปิดปุ่มไว้ไม่ให้งง)
+  const clueGiverTeam = gameState.users.find((user) => user.userId === gameState.clueGiver)?.team;
+  const isOnGuessingTeam = !!clueGiverTeam && myTeam === clueGiverTeam;
+  const canRotateDial = isOnGuessingTeam && !isClueGiver;
+  const isDialLocked = gameState.isRoundLocked || !canRotateDial;
 
   // ---------- ลากหมุนเข็ม ----------
   // ระหว่างลาก แสดงค่าในเครื่องตัวเองทันที (ไม่ต้องรอ server) แล้วค่อยส่งค่าไป server เป็นระยะ
