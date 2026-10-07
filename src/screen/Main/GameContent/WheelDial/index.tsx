@@ -31,6 +31,14 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
 
   const isClueGiver = gameState.clueGiver === profile.userId;
   const isHost = gameState.hostId === profile.userId;
+  // แง้มได้เฉพาะคนให้คำใบ้ และตอนหน้าปัดยังปิดอยู่ (กันค้างตอนเปลี่ยนคนให้คำใบ้ ที่ปุ่มแง้มหายไปแล้วกดปิดไม่ได้)
+  const isPeeking = peekScreen && isClueGiver && !gameState.screenOpen;
+
+  // เริ่มรอบใหม่ หรือไม่ได้เป็นคนให้คำใบ้แล้ว: ล้างสถานะแง้ม จะได้ไม่แง้มค้างไปรอบหน้า
+  useEffect(() => {
+    setIsPeekScreen(false);
+  }, [gameState.roundNumber, isClueGiver]);
+
   const myTeam = (gameState.users.find((user) => user.userId === profile.userId)?.team ?? null) as TeamKey | null;
   // เปิดหน้าปัดแล้ว ล็อกเข็ม (server ก็ล็อก แต่ปิดปุ่มไว้ด้วยจะได้ไม่งง)
   const isDialLocked = gameState.isRoundLocked;
@@ -147,7 +155,7 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
 
 
   const handlePeekScreen = () => {
-    setIsPeekScreen(!peekScreen);
+    setIsPeekScreen(!isPeeking);
   };
 
   return (
@@ -162,7 +170,7 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
             markerRotation={gameState.markerRotation}
             screenOpen={gameState.screenOpen}
             showScoreZones={gameState.screenOpen || isClueGiver}
-            peekScreen={peekScreen}
+            peekScreen={isPeeking}
             isDraggingDial={isDraggingDial}
             onDialDragStart={isDialLocked ? undefined : handleDialDragStart}
             onDialDrag={isDialLocked ? undefined : handleDialDrag}
@@ -177,7 +185,7 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
           {
             isClueGiver && <div className="w-full  top-[50%] left-[-36%] sm:left-0 mx-auto flex justify-center z-50">
               <button onClick={handlePeekScreen} className="w-14 h-14  px-3 py-1 bg-lightBrown rounded-[300px] text-darkBrown font-medium justify-items-center">
-                {peekScreen ? <EyeClosed /> : <Eye />}
+                {isPeeking ? <EyeClosed /> : <Eye />}
               </button>
             </div>
           }

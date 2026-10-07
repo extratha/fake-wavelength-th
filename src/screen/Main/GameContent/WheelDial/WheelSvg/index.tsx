@@ -69,6 +69,8 @@ const FRAME_PATH = `M 0 0 H ${CENTER_X * 2} V ${CENTER_Y} A ${RADIUS} ${RADIUS} 
 // เวลาหมุนฉากบังตอนเปิดคะแนน (ใช้ร่วมกับ delay ของ animation โซนที่เข็มชี้)
 const SCREEN_REVEAL_DURATION_MS = 3000;
 const MARKER_SPIN_DURATION_MS = 2500;
+// ตอนแง้ม ฉากบังจางลงแต่ยังเห็นอยู่ จะได้ไม่สับสนกับตอนเปิดหน้าปัดจริง (ฉากหมุนหายไป)
+const PEEK_SCREEN_OPACITY = 0.3;
 // หมุนกี่รอบก่อนหยุดที่ตำแหน่งเป้าใหม่ (ให้รู้สึกเหมือนวงล้อหมุนจริง)
 const MARKER_SPIN_EXTRA_TURNS = 2;
 const DIAL_MIN_DEG = -90;
@@ -236,7 +238,7 @@ const WheelSvg = ({
             screenOpen ? 180 : 0,
             `transform ${SCREEN_REVEAL_DURATION_MS}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 250ms ease`
           ),
-          opacity: peekScreen ? 0 : 1,
+          opacity: peekScreen ? PEEK_SCREEN_OPACITY : 1,
         }}
       >
         <path d={UPPER_HALF_CIRCLE} fill={COLORS.screenOuter} />
