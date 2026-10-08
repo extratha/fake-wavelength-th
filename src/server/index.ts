@@ -62,7 +62,7 @@ type GameState = {
   markerRotation: number;
   disableRandomMaker: boolean; 
   // ---------- รอบการเล่น / การคิดคะแนน ----------
-  // ทีมตรงข้ามแทงว่าเป้าอยู่ซ้ายหรือขวาของเข็ม
+  // ทีมตรงข้ามแทงว่าเป้าอยู่ครึ่งซ้ายหรือครึ่งขวาของหน้าปัด
   leftRightGuess: LeftRightGuess | null;
   // true ตั้งแต่เปิดหน้าปัดครั้งแรกของรอบ: ล็อกการแทงซ้าย/ขวา และล็อกเข็ม
   isRoundLocked: boolean;
@@ -666,7 +666,9 @@ io.on("connection", (socket) => {
     if (room.state.screenOpen) return;
 
     // สุ่มที่ server แทน client เพื่อไม่ให้คนกดสุ่ม (เช่น host) เห็นค่าใน network
-    const rotation = Math.floor(Math.random() * 180) - 90;
+    // ไม่ให้เป้าอยู่กึ่งกลางหน้าปัดพอดี (0) เพราะจะตัดสินการแทงครึ่งซ้าย/ขวาไม่ได้
+    let rotation = 0;
+    while (rotation === 0) rotation = Math.floor(Math.random() * 180) - 90;
     room.state.markerRotation = rotation;
     // เป้าใหม่ = เริ่มรอบใหม่: ปลดล็อกการแทง/เข็ม และล้างผลรอบก่อน
     room.state.isTargetSet = true;

@@ -2,7 +2,8 @@ import { getZoneScore } from "../constant/scoreZones";
 
 // กฎการคิดคะแนนตาม Wavelength ฉบับสากล
 // 1. ทีมที่เดา: เข็มตกโซน 4 / 3 / 2 ได้คะแนนตามโซน นอกโซนได้ 0
-// 2. ทีมตรงข้ามแทงว่าเป้าอยู่ "ซ้าย" หรือ "ขวา" ของเข็ม ถ้าถูกได้ 1 คะแนน
+// 2. ทีมตรงข้ามแทงว่าเป้า (กึ่งกลางโซน 4) อยู่ครึ่ง "ซ้าย" หรือ "ขวา" ของหน้าปัด ถ้าถูกได้ 1 คะแนน
+//    (กติกาบ้าน: ฉบับสากลแทงเทียบกับเข็ม แต่ที่นี่เทียบกับครึ่งหน้าปัด ไม่ขึ้นกับตำแหน่งเข็ม)
 //    (ยกเว้นทีมที่เดาได้ 4 = เข้าเป้ากลาง ทีมตรงข้ามจะไม่ได้คะแนนนี้)
 // 3. Catch-up: ถ้าทีมที่เดาได้ 4 แต่คะแนนรวมยังตามหลัง ได้เล่นต่ออีกตา
 // 4. ทีมแรกที่ถึง 10 คะแนนชนะ (ถ้าถึง 10 พร้อมกันและเสมอ ยังไม่มีผู้ชนะ เล่นต่อ)
@@ -22,7 +23,7 @@ export type RoundResult = {
   markerRotation: number;
   guessingTeamPoints: number;
   leftRightGuess: LeftRightGuess | null;
-  // null = ไม่ได้แทง หรือเข็มตรงเป้าพอดี (ตัดสินไม่ได้)
+  // null = ไม่ได้แทง หรือเป้าอยู่กึ่งกลางหน้าปัดพอดี (ตัดสินไม่ได้)
   isLeftRightGuessCorrect: boolean | null;
   opposingTeamPoints: number;
   scoresAfterRound: ScoreType;
@@ -33,16 +34,12 @@ export type RoundResult = {
 
 export const getOpposingTeam = (team: TeamKey): TeamKey => (team === "teamA" ? "teamB" : "teamA");
 
-// เป้าจริงอยู่ทางซ้ายหรือขวาของเข็ม (มุมน้อยกว่า = ซ้าย)
-const checkLeftRightGuess = (
-  leftRightGuess: LeftRightGuess | null,
-  dialRotation: number,
-  markerRotation: number
-): boolean | null => {
+// เป้าอยู่ครึ่งซ้ายหรือครึ่งขวาของหน้าปัด (มุมติดลบ = ซ้าย, 0 = กึ่งกลางพอดี)
+const checkLeftRightGuess = (leftRightGuess: LeftRightGuess | null, markerRotation: number): boolean | null => {
   if (!leftRightGuess) return null;
-  if (markerRotation === dialRotation) return null;
+  if (markerRotation === 0) return null;
 
-  const targetSide: LeftRightGuess = markerRotation < dialRotation ? "left" : "right";
+  const targetSide: LeftRightGuess = markerRotation < 0 ? "left" : "right";
   return leftRightGuess === targetSide;
 };
 
@@ -73,7 +70,7 @@ export const calculateRoundResult = ({
   const guessingTeamPoints = getZoneScore(dialRotation, markerRotation);
   const isBullseye = guessingTeamPoints === BULLSEYE_SCORE;
 
-  const isLeftRightGuessCorrect = checkLeftRightGuess(leftRightGuess, dialRotation, markerRotation);
+  const isLeftRightGuessCorrect = checkLeftRightGuess(leftRightGuess, markerRotation);
   const opposingTeamPoints = !isBullseye && isLeftRightGuessCorrect ? LEFT_RIGHT_GUESS_POINTS : 0;
 
   const scoresAfterRound: ScoreType = {

@@ -19,7 +19,7 @@ const GUESS_OPTIONS: { value: LeftRightGuessValue; label: string }[] = [
   { value: "right", label: "ขวา" },
 ];
 
-// ทีมตรงข้ามแทงว่าเป้าอยู่ซ้ายหรือขวาของเข็ม (สลับได้จนกว่าจะเปิดหน้าปัด)
+// ทีมตรงข้ามแทงว่าเป้า (โซน 4) อยู่ครึ่งซ้ายหรือครึ่งขวาของหน้าปัด (สลับได้จนกว่าจะเปิดหน้าปัด)
 const LeftRightGuess = ({ gameState, myTeam, isHighlighted }: LeftRightGuessProps) => {
   const guessingTeam = gameState.turn;
   if (!guessingTeam) return null;
@@ -37,7 +37,7 @@ const LeftRightGuess = ({ gameState, myTeam, isHighlighted }: LeftRightGuessProp
     <div className="mx-auto flex w-full max-w-[560px] flex-col items-center gap-3 rounded-clay border-2 border-clayEdge bg-surfaceDeep px-4 py-3">
       <p className="text-center text-sm text-lightBrown">
         <span className={clsx("font-semibold", TEAM_TEXT_CLASS[opposingTeam])}>{TEAM_LABEL[opposingTeam]}</span>{" "}
-        แทงว่าเป้าอยู่ซ้ายหรือขวาของเข็ม
+        แทงว่าเป้า (โซน 4) อยู่ครึ่งซ้ายหรือครึ่งขวาของหน้าปัด
         {isLocked && (
           <span className="ml-2 inline-flex items-center gap-1 text-muted">
             <Lock size={14} aria-hidden="true" /> ล็อกแล้ว

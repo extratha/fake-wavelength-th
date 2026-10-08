@@ -132,7 +132,7 @@ export const getGameGuide = (gameState: GameState, { myUserId, isHost, hasPeeked
     return message("แทงแล้ว เปลี่ยนใจได้จนกว่าจะเปิดคะแนน", null, hostHint);
   }
   return message(
-    `${TEAM_LABEL[myTeam]}: แทงว่าเป้าอยู่ซ้ายหรือขวาของเข็ม`,
+    `${TEAM_LABEL[myTeam]}: แทงว่าเป้า (โซน 4) อยู่ครึ่งซ้ายหรือครึ่งขวาของหน้าปัด`,
     "leftRightGuess",
     hostHint
   );
