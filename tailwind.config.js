@@ -27,6 +27,9 @@ module.exports = {
         ink: '#2b1d16',
         // ตัวอักษรรอง บนพื้น surface (contrast 5.3:1)
         muted: '#d9c3a5',
+        // สีทีมแบบสว่างขึ้น สำหรับ "ตัวอักษร" บนพื้นเข้ม (teamB เดิมได้แค่ 2.7:1 บน surface)
+        teamAText: '#9fd2f5',
+        teamBText: '#ffa3b0',
       },
       fontFamily: {
         // ตั้งค่าใน src/app/layout.tsx ผ่าน next/font

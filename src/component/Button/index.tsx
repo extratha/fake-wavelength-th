@@ -1,8 +1,8 @@
 import React from "react";
 import clsx from "clsx";
 
-type ButtonVariant = "primary" | "secondary" | "ghost";
-type ButtonSize = "md" | "lg";
+type ButtonVariant = "primary" | "secondary" | "ghost" | "teamA" | "teamB";
+type ButtonSize = "sm" | "md" | "lg";
 
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   children: React.ReactNode;
@@ -16,9 +16,13 @@ const VARIANT_CLASS: Record<ButtonVariant, string> = {
   primary: "bg-mediumYellow text-darkBrown border-clayEdge shadow-clay-sm hover:brightness-105",
   secondary: "bg-mediumBrown text-ink border-clayEdge shadow-clay-sm hover:brightness-105",
   ghost: "bg-transparent text-lightBrown border-lightBrown/40 shadow-none hover:bg-white/5",
+  // พื้นสีทีม + ตัวอักษรเข้ม (ink บน teamB = 4.8:1, บน teamA = 8:1)
+  teamA: "bg-teamA text-ink border-clayEdge shadow-clay-sm hover:brightness-105",
+  teamB: "bg-teamB text-ink border-clayEdge shadow-clay-sm hover:brightness-105",
 };
 
 const SIZE_CLASS: Record<ButtonSize, string> = {
+  sm: "min-h-[44px] px-4 text-sm",
   md: "min-h-[48px] px-5 text-base",
   lg: "min-h-[56px] px-6 text-lg",
 };
