@@ -22,7 +22,7 @@ const OnlineRoomList = ({ rooms, onJoinRoom }: OnlineRoomListProps) => {
       {rooms.length === 0 ? (
         <div className="rounded-2xl border-[3px] border-dashed border-clayEdge/80 bg-surfaceDeep/60 px-4 py-6 text-center">
           <p className="font-display text-base text-lightBrown">ยังไม่มีห้องที่ออนไลน์</p>
-          <p className="mt-1 text-sm text-muted">สร้างห้องใหม่ด้านบน แล้วชวนเพื่อนมาเล่นได้เลย</p>
+          <p className="mt-1 text-sm text-muted">สร้างห้องใหม่ด้านล่าง แล้วชวนเพื่อนมาเล่นได้เลย</p>
         </div>
       ) : (
         <ul className="flex flex-col gap-2.5">
