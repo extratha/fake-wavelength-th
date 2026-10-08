@@ -1,6 +1,10 @@
 import { LoaderCircle } from "lucide-react";
 
-const FullScreenLoading = () => {
+type FullScreenLoadingProps = {
+  message?: string;
+};
+
+const FullScreenLoading = ({ message = "กำลังโหลด..." }: FullScreenLoadingProps) => {
   return (
     <div
       role="status"
@@ -9,7 +13,7 @@ const FullScreenLoading = () => {
     >
       <div className="flex items-center gap-3 rounded-[1.75rem] border-[3px] border-clayEdge bg-surface px-6 py-4 shadow-clay">
         <LoaderCircle aria-hidden="true" className="h-6 w-6 animate-spin text-mediumYellow" />
-        <span className="font-display text-lg text-lightBrown">กำลังโหลด...</span>
+        <span className="font-display text-lg text-lightBrown">{message}</span>
       </div>
     </div>
   );

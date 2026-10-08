@@ -8,13 +8,17 @@ import { socket } from '@/lib/socket'
 import { v4 as uuidv4 } from 'uuid'
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { useSocketConnected } from "@/hooks/useSocketConnected";
 import FullScreenLoading from "@/component/FullScreenLoading";
 import type { RoomSummary } from "@/server/game/roomCode";
 import LobbyHeader from "./LobbyHeader";
 import CreateRoomSection from "./CreateRoomSection";
 import JoinRoomSection from "./JoinRoomSection";
+import ServerStatusBanner from "./ServerStatusBanner";
 
 const SOCKET_RESPONSE_TIMEOUT_MS = 5000
+// รอ server ตื่นสูงสุดเท่านี้ (Render free ใช้ราว 30-60 วินาที)
+const SERVER_WAKE_UP_TIMEOUT_MS = 90_000
 // รหัสห้องที่ server สุ่มให้: 4 ตัว ตัวอักษรอังกฤษเล็ก/ใหญ่ และตัวเลข (ดู src/server/game/roomCode.ts)
 const ROOM_CODE_PATTERN = /^[a-zA-Z0-9]{4}$/
 const PLAYER_NAME_MAX_LENGTH = 20
@@ -32,6 +36,11 @@ export default function Lobby() {
 	const [roomIdInput, setRoomIdInput] = useState("");
 	const [availableRooms, setAvailableRooms] = useState<RoomSummary[]>([]);
 	const [isLoading, setIsLoading] = useState(false)
+	const isServerConnected = useSocketConnected()
+	// กดสร้าง/เข้าห้องตอน server ยังไม่ตื่น: เก็บคำสั่งไว้ แล้วส่งให้อัตโนมัติเมื่อต่อติด
+	const [isWaitingForServer, setIsWaitingForServer] = useState(false)
+	const pendingActionRef = useRef<(() => void) | null>(null)
+	const wakeUpTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 	// error ที่แสดงใต้ช่องกรอก (ตรวจตอนกดปุ่ม)
 	const [nameError, setNameError] = useState<string | undefined>()
 	const [roomCodeError, setRoomCodeError] = useState<string | undefined>()
@@ -102,14 +111,39 @@ export default function Lobby() {
 		});
 	}
 
-	// ต้องต่อ server ได้ก่อนถึงจะสร้าง/เข้าห้องได้
-	const ensureConnected = () => {
-		if (socketRef.current?.connected) return true
-		setModalOptions({
-			open: true,
-			message: 'ยังเชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาลองใหม่อีกครั้ง',
-		});
-		return false
+	const clearPendingAction = () => {
+		pendingActionRef.current = null
+		if (wakeUpTimeoutRef.current) clearTimeout(wakeUpTimeoutRef.current)
+		wakeUpTimeoutRef.current = null
+		setIsWaitingForServer(false)
+	}
+
+	// ต่อ server ติดแล้วค่อยทำคำสั่งที่ผู้เล่นกดค้างไว้
+	useEffect(() => {
+		if (!isServerConnected || !pendingActionRef.current) return
+		const pendingAction = pendingActionRef.current
+		clearPendingAction()
+		pendingAction()
+	}, [isServerConnected])
+
+	useEffect(() => () => {
+		if (wakeUpTimeoutRef.current) clearTimeout(wakeUpTimeoutRef.current)
+	}, [])
+
+	// ต่อ server อยู่แล้วทำทันที ถ้ายังไม่ติด (server กำลังตื่น) รอแล้วทำให้อัตโนมัติ
+	const runWhenConnected = (action: () => void) => {
+		if (socketRef.current?.connected) {
+			action()
+			return
+		}
+
+		setIsLoading(true)
+		setIsWaitingForServer(true)
+		pendingActionRef.current = action
+		wakeUpTimeoutRef.current = setTimeout(() => {
+			clearPendingAction()
+			showServerTimeoutError()
+		}, SERVER_WAKE_UP_TIMEOUT_MS)
 	}
 
 	const validatePlayerName = () => {
@@ -120,7 +154,11 @@ export default function Lobby() {
 
 	const createRoom = () => {
 		if (!validatePlayerName()) return
-		if (!ensureConnected() || !socketRef.current) return
+		runWhenConnected(sendCreateRoom)
+	};
+
+	const sendCreateRoom = () => {
+		if (!socketRef.current) return
 
 		setIsLoading(true)
 		// ไม่ต้องส่งชื่อห้อง: server สุ่มรหัสห้องที่ไม่ซ้ำให้
@@ -153,7 +191,11 @@ export default function Lobby() {
 			return
 		}
 		if (!isNameValid) return
-		if (!ensureConnected() || !socketRef.current) return
+		runWhenConnected(() => sendJoinRoom(roomId))
+	};
+
+	const sendJoinRoom = (roomId: string) => {
+		if (!socketRef.current) return
 
 		setIsLoading(true)
 		updateProfile({ roomId })
@@ -180,6 +222,8 @@ export default function Lobby() {
 		<main className="min-h-screen px-4 pb-12 pt-8 sm:pt-12">
 			<div className="mx-auto flex w-full max-w-md flex-col gap-6">
 				<LobbyHeader />
+
+				<ServerStatusBanner isConnected={isServerConnected} />
 
 				<InputText
 					label="ชื่อเล่นของคุณ"
@@ -212,7 +256,9 @@ export default function Lobby() {
 			<Modal
 				options={{ ...modalOptions, onClose: handleCloseModal } as ModalOptions}
 			/>
-			{isLoading && <FullScreenLoading />}
+			{isLoading && (
+				<FullScreenLoading message={isWaitingForServer ? "กำลังรอเซิร์ฟเวอร์ตื่น อาจใช้ ~1 นาที..." : undefined} />
+			)}
 		</main>
 	);
 }
