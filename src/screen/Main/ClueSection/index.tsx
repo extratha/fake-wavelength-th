@@ -7,16 +7,18 @@ import Card from "@/component/Card";
 import InputText from "@/component/InputText";
 import { GameState } from "../GameContent";
 import { TEAM_TEXT_CLASS, isTeamKey } from "../teamStyles";
+import type { GuideTarget } from "../gameGuideLogic";
 
 type ClueSectionProps = {
   gameState: GameState;
   isClueGiver: boolean;
+  guideTarget: GuideTarget | null;
 };
 
 const CLUE_MAX_LENGTH = 100;
 
 // คำใบ้ของรอบนี้: คนให้คำใบ้พิมพ์/ส่งได้เรื่อย ๆ ส่วนคนอื่นเห็นคำใบ้ล่าสุด
-const ClueSection = ({ gameState, isClueGiver }: ClueSectionProps) => {
+const ClueSection = ({ gameState, isClueGiver, guideTarget }: ClueSectionProps) => {
   const [clueInput, setClueInput] = useState("");
 
   // เริ่มรอบใหม่ server ล้างคำใบ้แล้ว ช่องพิมพ์ก็ต้องล้างตาม ไม่งั้นคำใบ้รอบก่อนจะค้างในช่อง
@@ -79,7 +81,10 @@ const ClueSection = ({ gameState, isClueGiver }: ClueSectionProps) => {
 
         {isClueGiver && (
           <form
-            className="flex w-full items-end gap-2 sm:w-auto sm:min-w-[320px]"
+            className={clsx(
+              "flex w-full items-end gap-2 rounded-2xl sm:w-auto sm:min-w-[320px]",
+              guideTarget === "submitClue" && "guide-highlight"
+            )}
             onSubmit={(event) => {
               event.preventDefault();
               submitClue();

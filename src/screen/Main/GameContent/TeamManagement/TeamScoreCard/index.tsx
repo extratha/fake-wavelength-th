@@ -11,6 +11,8 @@ type TeamScoreCardProps = {
   isTeamTurn: boolean;
   isMyTeam: boolean;
   isHost: boolean;
+  // ระบบนำทางไฮไลต์ปุ่ม "เริ่มรอบ" (host ยังไม่ได้เลือกทีมที่เล่น)
+  isStartTurnHighlighted: boolean;
   onJoinTeam: () => void;
   onStartTurn: () => void;
   onAdjustScore: (method: "+" | "-") => void;
@@ -23,6 +25,7 @@ const TeamScoreCard = ({
   isTeamTurn,
   isMyTeam,
   isHost,
+  isStartTurnHighlighted,
   onJoinTeam,
   onStartTurn,
   onAdjustScore,
@@ -81,7 +84,14 @@ const TeamScoreCard = ({
           </Button>
         )}
         {isHost && (
-          <Button variant="ghost" size="sm" fullWidth onClick={onStartTurn} aria-label={`เริ่มรอบของ${teamLabel}`}>
+          <Button
+            variant="ghost"
+            size="sm"
+            fullWidth
+            onClick={onStartTurn}
+            aria-label={`เริ่มรอบของ${teamLabel}`}
+            className={clsx(isStartTurnHighlighted && "guide-highlight")}
+          >
             <Play size={16} aria-hidden="true" />
             {/* มือถือข้อความสั้น จะได้ไม่ขึ้น 2 บรรทัด (การ์ดบอกชื่อทีมอยู่แล้ว) */}
             <span className="sm:hidden">เริ่มรอบ</span>

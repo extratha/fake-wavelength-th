@@ -8,13 +8,15 @@ import TeamScoreCard from "./TeamScoreCard";
 type TeamManagementProps = {
   gameState: GameState;
   isHost: boolean;
+  // ระบบนำทางไฮไลต์ปุ่ม "เริ่มรอบ" ให้ host (ยังไม่ได้เลือกทีมที่เล่น)
+  isStartTurnHighlighted: boolean;
 }
 export type TeamKey = 'teamA' | 'teamB';
 
 const TEAMS: TeamKey[] = ['teamA', 'teamB'];
 
 // กระดานคะแนน 2 ทีม + ปุ่มสุ่มทีม (host)
-const TeamManagement = ({ gameState, isHost }: TeamManagementProps) => {
+const TeamManagement = ({ gameState, isHost, isStartTurnHighlighted }: TeamManagementProps) => {
   const { profile } = useUserProfile()
 
   const handleAdjustTeamScore = (type: '+' | "-", team: string) => {
@@ -58,6 +60,7 @@ const TeamManagement = ({ gameState, isHost }: TeamManagementProps) => {
             isTeamTurn={gameState.turn === team}
             isMyTeam={thisPlayerFromGameState?.team === team}
             isHost={isHost}
+            isStartTurnHighlighted={isStartTurnHighlighted}
             onJoinTeam={() => handleSelectTeam(team)}
             onStartTurn={() => handleStartTurnOfTeam(team)}
             onAdjustScore={(method) => handleAdjustTeamScore(method, team)}
