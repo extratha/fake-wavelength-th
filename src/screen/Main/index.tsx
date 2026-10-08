@@ -186,8 +186,8 @@ export default function MainScreen() {
             />
           </div>
 
-          <div className="contents lg:sticky lg:top-4 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:flex lg:h-[calc(100vh-2rem)] lg:flex-col lg:gap-5">
-            <div className="order-1 lg:shrink-0">
+          <div className="contents lg:sticky lg:top-4 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:flex lg:h-[calc(100dvh-2rem)] lg:flex-col lg:gap-5">
+            <div className="order-1 lg:flex lg:max-h-[50%] lg:min-h-0 lg:flex-col">
               <PlayersPanel
                 users={gameState.users}
                 hostId={gameState.hostId}
@@ -200,7 +200,7 @@ export default function MainScreen() {
               gameState={gameState}
               myUserId={profile.userId ?? ""}
               isClueGiver={isClueGiver}
-              className="order-3 h-[480px] lg:h-auto lg:min-h-[240px] lg:flex-1"
+              className="order-3 h-[480px] lg:h-auto lg:min-h-0 lg:flex-1"
             />
           </div>
 
