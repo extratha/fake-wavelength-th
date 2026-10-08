@@ -6,6 +6,16 @@ import { pairWords as fullPairWords, PairWord } from './constant/pairWords';
 import { calculateRoundResult, getOpposingTeam, LeftRightGuess, RoundResult } from './game/scoring';
 import { generateUniqueRoomCode, RoomSummary } from './game/roomCode';
 import { pickFairRandomClueGiver } from './game/clueGiver';
+import {
+  appendChatMessage,
+  ChatMessage,
+  createPlayerMessage,
+  createSystemMessage,
+  formatRoundResultMessage,
+  formatWinnerMessage,
+  isChatRateLimited,
+  normalizeChatText,
+} from './game/chat';
 
 declare module "socket.io" {
   interface Socket {
@@ -77,6 +87,10 @@ type RoomType = {
   users: Map<string, { name: string; userId: string; team?: string }>;
   state: GameState;
   hostId: string
+  // แชทแยกจาก state (ไม่ส่งไปพร้อม gameStateUpdate ทุกครั้ง ส่งเฉพาะข้อความใหม่)
+  chatMessages: ChatMessage[];
+  // เวลาที่ส่งแชทล่าสุดของแต่ละคน ใช้กันส่งรัว
+  chatSendTimesByUser: Map<string, number[]>;
 }
 
 const rooms: Record<string, RoomType> = {};
@@ -93,6 +107,13 @@ function getRoomSummaries(): RoomSummary[] {
 // แจ้งทุกคน (รวมคนที่อยู่หน้า lobby) เมื่อมีห้องเกิด/หาย หรือจำนวนผู้เล่นในห้องเปลี่ยน
 function broadcastRoomList() {
   io.emit("updateRooms", getRoomSummaries());
+}
+
+// ข้อความจากระบบในแชท (เข้า/ออกห้อง, ผลรอบ)
+function postSystemChatMessage(roomId: string, room: RoomType, text: string) {
+  const message = createSystemMessage(text);
+  appendChatMessage(room.chatMessages, message);
+  io.to(roomId).emit("chatMessage", message);
 }
 
 function scheduleRoomDeletion(roomId: string) {
@@ -191,7 +212,9 @@ function removeDisconnectedUser(userId: string) {
     if (!room.users.has(userId)) continue;
     if (isUserConnectedToRoom(userId, roomId)) continue;
 
+    const disconnectedUserName = room.users.get(userId)?.name;
     room.users.delete(userId);
+    if (disconnectedUserName) postSystemChatMessage(roomId, room, `${disconnectedUserName} หลุดออกจากห้อง`);
     console.log(`User ${userId} removed from room ${roomId} on disconnect`);
 
     // ถ้า host หลุด ให้ตั้ง host ใหม่ (เหมือน leaveRoom) ไม่งั้นห้องจะไม่มีใครควบคุมได้
@@ -318,6 +341,8 @@ function lockRoundAndScheduleScoring(roomId: string, room: RoomType) {
     // ถ้า host เริ่มรอบใหม่ไปแล้วระหว่างรอ ยังบวกคะแนนให้ แต่ไม่แสดงสรุปผลทับรอบใหม่
     if (currentRoom.state.roundNumber === roundNumberAtReveal) {
       currentRoom.state.roundResult = result;
+      postSystemChatMessage(roomId, currentRoom, formatRoundResultMessage(result));
+      if (result.winner) postSystemChatMessage(roomId, currentRoom, formatWinnerMessage(result.winner));
     }
 
     console.log(`[Room ${roomId}] Round ${roundNumberAtReveal} scored:`, JSON.stringify({
@@ -403,6 +428,8 @@ io.on("connection", (socket) => {
           clueGiverSkipRequested: false,
         },
         hostId: userId,
+        chatMessages: [],
+        chatSendTimesByUser: new Map(),
       };
 
       socket.join(room);
@@ -412,6 +439,7 @@ io.on("connection", (socket) => {
 
       broadcastRoomList();
       if (callback) callback({ success: true, roomId: room });
+      postSystemChatMessage(room, rooms[room], `${name} สร้างห้อง`);
 
       updateRoomState(room, rooms[room]);
     }
@@ -432,6 +460,8 @@ io.on("connection", (socket) => {
     existingRoom.users.set(userId, { ...userAlreadyInRoom, name, userId });
     socket.join(roomId);
     socket.userId = userId;
+    // แจ้งในแชทเฉพาะคนที่เพิ่งเข้ามาใหม่ (ไม่ใช่การต่อใหม่ของคนที่อยู่ในห้องอยู่แล้ว)
+    if (!userAlreadyInRoom) postSystemChatMessage(roomId, existingRoom, `${name} เข้าห้อง`);
 
     if (existingRoom.users.size === 1) {
       setNewHost(roomId, userId)
@@ -466,8 +496,11 @@ io.on("connection", (socket) => {
     if (!room) return;
     if (userId !== socket.userId) return rejectUnauthorized(socket, 'leaveRoom');
 
+    // หน้า lobby ส่ง leaveRoom ทุกครั้งที่เปิด จึงแจ้งในแชทเฉพาะเมื่ออยู่ในห้องจริง
+    const leavingUserName = room.users.get(userId)?.name;
     room.users.delete(userId);
     socket.leave(roomId);
+    if (leavingUserName) postSystemChatMessage(roomId, room, `${leavingUserName} ออกจากห้อง`);
     console.log(`${userId} (${name}) "LEFTED" room ${roomId}`);
 
     // socket.emit('forceLeftRoom')
@@ -527,7 +560,9 @@ io.on("connection", (socket) => {
 
     if (!room.users.has(userId)) return;
 
+    const kickedUserName = room.users.get(userId)?.name;
     room.users.delete(userId);
+    postSystemChatMessage(roomId, room, `${kickedUserName} ถูกเชิญออกจากห้อง`);
 
     // เตะผู้ใช้จาก room (server-side)
     io.to(roomId).emit("userKicked", { userId });
@@ -812,6 +847,45 @@ io.on("connection", (socket) => {
     startRoundForTeam(room, 'teamA')
     updateRoomState(roomId, room)
     console.log(`[Room ${roomId}] New game started`)
+  })
+
+  // ---------- แชท ----------
+  // ประวัติแชททั้งหมดที่ server เก็บไว้ (สูงสุด 100 ข้อความ) สำหรับคนที่เพิ่งเข้าห้อง/ต่อใหม่
+  socket.on('getChatHistory', ({ roomId }, callback) => {
+    if (typeof callback !== 'function') return
+    const room = rooms[roomId]
+    if (!room || !isRoomMember(socket, room)) return callback([])
+    callback(room.chatMessages)
+  })
+
+  socket.on('sendChatMessage', ({ roomId, text }, callback) => {
+    const respond = (response: { success: boolean; message?: string }) => {
+      if (typeof callback === 'function') callback(response)
+    }
+    const room = rooms[roomId]
+    if (!room) return respond({ success: false, message: 'ไม่พบห้อง' })
+    if (!isRoomMember(socket, room)) return rejectUnauthorized(socket, 'sendChatMessage')
+
+    // คนให้คำใบ้ห้ามพิมพ์แชท (กันใบ้เพิ่มทางแชท)
+    if (room.state.clueGiver === socket.userId) {
+      return respond({ success: false, message: 'คนให้คำใบ้พิมพ์แชทไม่ได้' })
+    }
+
+    const chatText = normalizeChatText(text)
+    if (!chatText) return respond({ success: false, message: 'พิมพ์ข้อความก่อนส่ง' })
+
+    const userId = socket.userId!
+    const recentSendTimes = room.chatSendTimesByUser.get(userId) ?? []
+    room.chatSendTimesByUser.set(userId, recentSendTimes)
+    if (isChatRateLimited(recentSendTimes)) {
+      return respond({ success: false, message: 'ส่งเร็วเกินไป รอสักครู่แล้วลองใหม่' })
+    }
+
+    const senderName = room.users.get(userId)?.name ?? 'ผู้เล่น'
+    const message = createPlayerMessage(userId, senderName, chatText)
+    appendChatMessage(room.chatMessages, message)
+    io.to(roomId).emit('chatMessage', message)
+    respond({ success: true })
   })
 
   socket.on('submitClue', ({ roomId, clue }) => {
