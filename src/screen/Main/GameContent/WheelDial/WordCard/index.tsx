@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { socket } from "@/lib/socket";
+import { emitRoomAction } from "@/lib/roomActions";
 import {  useState } from "react";
 import { GameState } from "../..";
 import { ArrowLeft, ArrowRight, Dices, RotateCcw } from "lucide-react";
@@ -25,7 +25,7 @@ const WordCard = ({ gameState, isHost, isClueGiver, isPickPairWordHighlighted }:
   const rightWord = gameState.pairWords ? gameState.pairWords.words[1] : ''
 
   const handleResetUsedWord = () => {
-    socket.emit('resetPairWord', { roomId: gameState.roomId })
+    emitRoomAction('resetPairWord', { roomId: gameState.roomId })
   }
 
   const handleCloseModal = () => {
@@ -33,7 +33,7 @@ const WordCard = ({ gameState, isHost, isClueGiver, isPickPairWordHighlighted }:
   }
 
   const handleRandomPairWord = () => {
-    socket.emit('randomPairWord', { roomId: gameState.roomId }, (response: { success: boolean, message: string, roomId: string }) => {
+    emitRoomAction('randomPairWord', { roomId: gameState.roomId }, (response: { success: boolean, message: string, roomId: string }) => {
       if (!response.success) {
         setModalOptions({
           open: true,

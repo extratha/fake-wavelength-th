@@ -273,6 +273,8 @@ function canRotateDial(socket: Socket, room: RoomType) {
 
 function rejectUnauthorized(socket: Socket, eventName: string) {
   console.log(`⛔ ${socket.userId ?? 'unknown user'} tried "${eventName}" without permission`);
+  // แจ้งคนกดว่าไม่สำเร็จ (เดิมเงียบ ผู้เล่นไม่รู้ว่ากดแล้วทำไมไม่มีอะไรเกิดขึ้น)
+  socket.emit('actionRejected', { eventName });
 }
 
 // เวลาเดียวกับ animation เปิดหน้าปัดฝั่ง client: บวกคะแนนหลังฉากหมุนเปิดเสร็จ

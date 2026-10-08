@@ -1,6 +1,6 @@
 import clsx from "clsx";
 import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
-import { socket } from "@/lib/socket";
+import { emitRoomAction } from "@/lib/roomActions";
 import type { LeftRightGuess as LeftRightGuessValue } from "@/server/game/scoring";
 import { GameState } from "../..";
 import { TeamKey } from "../../TeamManagement";
@@ -30,7 +30,7 @@ const LeftRightGuess = ({ gameState, myTeam, isHighlighted }: LeftRightGuessProp
 
   const handleGuess = (guess: LeftRightGuessValue) => {
     if (!canGuess) return;
-    socket.emit("setLeftRightGuess", { roomId: gameState.roomId, guess });
+    emitRoomAction("setLeftRightGuess", { roomId: gameState.roomId, guess });
   };
 
   return (

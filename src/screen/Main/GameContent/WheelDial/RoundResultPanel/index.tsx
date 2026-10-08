@@ -1,6 +1,6 @@
 import clsx from "clsx";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
-import { socket } from "@/lib/socket";
+import { emitRoomAction } from "@/lib/roomActions";
 import { GameState } from "../..";
 import { ArrowRight, ChevronDown, ChevronUp, RotateCcw, Target, Trophy } from "lucide-react";
 import Button from "@/component/Button";
@@ -59,11 +59,11 @@ const RoundResultPanel = ({ gameState, isHost, isNextRoundHighlighted }: RoundRe
   if (!isShown) return null;
 
   const handleStartNextRound = () => {
-    socket.emit("startNextRound", { roomId: gameState.roomId });
+    emitRoomAction("startNextRound", { roomId: gameState.roomId });
   };
 
   const handleStartNewGame = () => {
-    socket.emit("startNewGame", { roomId: gameState.roomId });
+    emitRoomAction("startNewGame", { roomId: gameState.roomId });
   };
 
   // ข้อความสั้น ๆ บนแถบตอนพับ

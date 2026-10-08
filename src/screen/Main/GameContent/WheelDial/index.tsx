@@ -1,7 +1,7 @@
 import debounce from "lodash.debounce";
 import { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
-import { socket } from "@/lib/socket";
+import { emitRoomAction } from "@/lib/roomActions";
 import { GameState } from "..";
 import { useUserProfile } from "@/hooks/useUserProfile";
 
@@ -98,7 +98,7 @@ const WheelDial = ({ gameState, guideTarget, onPeekTarget }: WheelDialProps) => 
     () =>
       debounce(
         (roomId: string, rotation: number, userName: string) => {
-          socket.emit("updateDialRotation", { roomId, rotation, userName });
+          emitRoomAction("updateDialRotation", { roomId, rotation, userName });
         },
         60,
         { maxWait: 60 }
@@ -136,7 +136,7 @@ const WheelDial = ({ gameState, guideTarget, onPeekTarget }: WheelDialProps) => 
     setIsDraggingDial(false);
     // ส่งค่าสุดท้ายทันที ไม่ต้องรอรอบ throttle
     emitDialRotationThrottled.cancel();
-    socket.emit("updateDialRotation", {
+    emitRoomAction("updateDialRotation", {
       roomId: gameState.roomId,
       rotation,
       userName: profile.userName,
@@ -154,7 +154,7 @@ const WheelDial = ({ gameState, guideTarget, onPeekTarget }: WheelDialProps) => 
     // clamp ไว้ในช่วง -90 ถึง 90 กันกรณีเช่นอยู่ที่ 85 แล้วกด +10 เป็น 95
     const newRotation = Math.min(90, Math.max(-90, gameState.dialRotation + deg));
 
-    socket.emit("updateDialRotation", {
+    emitRoomAction("updateDialRotation", {
       roomId: gameState.roomId,
       rotation: newRotation,
       userName: profile.userName,
@@ -163,7 +163,7 @@ const WheelDial = ({ gameState, guideTarget, onPeekTarget }: WheelDialProps) => 
 
   const toggleScreen = () => {
     if (gameState.screenOpen) {
-      socket.emit("toggleScreen", {
+      emitRoomAction("toggleScreen", {
         roomId: gameState.roomId,
         screenOpen: false,
         userName: profile.userName,
@@ -176,7 +176,7 @@ const WheelDial = ({ gameState, guideTarget, onPeekTarget }: WheelDialProps) => 
   };
 
   const handleConfirmToggleScreen = () => {
-    socket.emit("toggleScreen", {
+    emitRoomAction("toggleScreen", {
       roomId: gameState.roomId,
       screenOpen: true,
       userName: profile.userName,
@@ -189,11 +189,11 @@ const WheelDial = ({ gameState, guideTarget, onPeekTarget }: WheelDialProps) => 
 
   const randomizeMarker = () => {
     // server เป็นคนสุ่มตำแหน่งเป้า (ไม่ส่งค่าจาก client เพื่อกันโกง)
-    socket.emit("randomizeMarker", {
+    emitRoomAction("randomizeMarker", {
       roomId: gameState.roomId,
       userName: profile.userName,
     });
-    socket.emit('setDisableRandomMaker', {
+    emitRoomAction('setDisableRandomMaker', {
       roomId : gameState.roomId
     })
   };

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import clsx from "clsx";
 import { Hand, MessageCircle, Target } from "lucide-react";
-import { socket } from "@/lib/socket";
+import { emitRoomAction } from "@/lib/roomActions";
 import Button from "@/component/Button";
 import Card from "@/component/Card";
 import InputText from "@/component/InputText";
@@ -30,7 +30,7 @@ const ClueSection = ({ gameState, isClueGiver, guideTarget }: ClueSectionProps) 
   const submitClue = () => {
     const trimmedClue = clueInput.trim();
     if (!trimmedClue) return;
-    socket.emit("submitClue", { roomId: gameState.roomId, clue: trimmedClue });
+    emitRoomAction("submitClue", { roomId: gameState.roomId, clue: trimmedClue });
   };
 
   const clueGiverUser = gameState.users.find((user) => user.userId === gameState.clueGiver);
@@ -39,7 +39,7 @@ const ClueSection = ({ gameState, isClueGiver, guideTarget }: ClueSectionProps) 
   const canRequestSkip = isClueGiver && !gameState.isRoundLocked;
 
   const handleToggleSkipRequest = () => {
-    socket.emit("setClueGiverSkipRequest", {
+    emitRoomAction("setClueGiverSkipRequest", {
       roomId: gameState.roomId,
       requested: !gameState.clueGiverSkipRequested,
     });

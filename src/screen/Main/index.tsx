@@ -2,6 +2,7 @@
 
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { socket } from "@/lib/socket";
+import { setRoomJoined } from "@/lib/roomActions";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Modal, { ModalOptions } from "@/component/Modal";
@@ -12,6 +13,7 @@ import RoomHeader from "./RoomHeader";
 import ClueSection from "./ClueSection";
 import ChatPanel from "./ChatPanel";
 import GuideBanner from "./GuideBanner";
+import ConnectionStatusBanner from "./ConnectionStatusBanner";
 import { getGameGuide } from "./gameGuideLogic";
 import { useVibrateOnNewClue } from "./useVibrateOnNewClue";
 
@@ -107,6 +109,8 @@ export default function MainScreen() {
         (response: { success: boolean; currentHostId?: string }) => {
           if (response.success) {
             setIsHost(response.currentHostId === profile.userId);
+            // เข้าห้องเสร็จแล้ว: ส่งคำสั่งที่กดค้างไว้ระหว่างเชื่อมต่อใหม่ (ดู lib/roomActions)
+            setRoomJoined(true);
           } else {
             router.replace("/lobby?error=ไม่พบห้อง");
           }
@@ -148,6 +152,11 @@ export default function MainScreen() {
     };
     //eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileReady, profile]);
+
+  // ออกจากหน้าห้อง: ไม่ได้อยู่ในห้องแล้ว ล้างคำสั่งที่ค้างไว้
+  useEffect(() => {
+    return () => setRoomJoined(false);
+  }, []);
 
   useEffect(() => {
     const handleConnect = () => {
@@ -236,6 +245,7 @@ export default function MainScreen() {
         </div>
       </div>
 
+      <ConnectionStatusBanner />
       <Modal options={{ ...modalOptions, onClose: handleCloseModal }} />
     </main>
   );

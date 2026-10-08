@@ -1,7 +1,7 @@
 "use client";
 
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { socket } from "@/lib/socket";
+import { emitRoomAction } from "@/lib/roomActions";
 import clsx from "clsx";
 import { ChevronDown, EllipsisVertical, Hand, Info, Users } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
@@ -86,14 +86,14 @@ const PlayersPanel = ({
     if (!profile?.roomId) return;
 
     if (action === "clueGiver") {
-      socket.emit("assignClueGiver", {
+      emitRoomAction("assignClueGiver", {
         roomId: profile.roomId,
         userId: player.userId,
       });
     }
 
     if (action === "assignHost") {
-      socket.emit("assignHost", {
+      emitRoomAction("assignHost", {
         roomId: profile.roomId,
         userId: player.userId,
         targetToHostId: player.userId,
@@ -101,7 +101,7 @@ const PlayersPanel = ({
     }
 
     if (action === "kick") {
-      socket.emit("kickUser", {
+      emitRoomAction("kickUser", {
         roomId: profile.roomId,
         userId: player.userId,
       });

@@ -1,4 +1,4 @@
-import { socket } from "@/lib/socket";
+import { emitRoomAction } from "@/lib/roomActions";
 import { GameState } from "..";
 import { Shuffle } from "lucide-react";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -20,7 +20,7 @@ const TeamManagement = ({ gameState, isHost, isStartTurnHighlighted }: TeamManag
   const { profile } = useUserProfile()
 
   const handleAdjustTeamScore = (type: '+' | "-", team: string) => {
-    socket.emit('updateTeamScore', {
+    emitRoomAction('updateTeamScore', {
       roomId: gameState.roomId,
       team,
       score: 1,
@@ -29,7 +29,7 @@ const TeamManagement = ({ gameState, isHost, isStartTurnHighlighted }: TeamManag
   }
 
   const handleSelectTeam = (team: TeamKey) => {
-    socket.emit('userUpdateThierTeam', {
+    emitRoomAction('userUpdateThierTeam', {
       roomId: gameState.roomId,
       userId: profile.userId,
       team,
@@ -37,14 +37,14 @@ const TeamManagement = ({ gameState, isHost, isStartTurnHighlighted }: TeamManag
   }
 
   const handleStartTurnOfTeam = (team: TeamKey) => {
-    socket.emit('setTurnOfTeam', {
+    emitRoomAction('setTurnOfTeam', {
       roomId: gameState.roomId,
       team,
     })
   }
 
   const handleRandomTeam = () => {
-    socket.emit('randomizeTeam', { roomId: gameState.roomId })
+    emitRoomAction('randomizeTeam', { roomId: gameState.roomId })
   }
 
   const thisPlayerFromGameState = gameState.users.find((user) => user.userId === profile.userId)
