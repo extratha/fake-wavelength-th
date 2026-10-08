@@ -23,6 +23,15 @@ export type ChatMessage =
       type: "system";
       text: string;
       sentAt: number;
+    }
+  | {
+      // คำใบ้ใหม่จากคนให้คำใบ้ (แสดงเด่นกว่าข้อความระบบทั่วไป คนที่ดูแชทอยู่จะได้ไม่พลาด)
+      id: string;
+      type: "clue";
+      userId: string;
+      name: string;
+      clue: string;
+      sentAt: number;
     };
 
 export const createPlayerMessage = (userId: string, name: string, text: string): ChatMessage => ({
@@ -38,6 +47,15 @@ export const createSystemMessage = (text: string): ChatMessage => ({
   id: randomUUID(),
   type: "system",
   text,
+  sentAt: Date.now(),
+});
+
+export const createClueMessage = (userId: string, name: string, clue: string): ChatMessage => ({
+  id: randomUUID(),
+  type: "clue",
+  userId,
+  name,
+  clue,
   sentAt: Date.now(),
 });
 
