@@ -8,7 +8,8 @@ const CENTER_Y = 100;
 const RADIUS = 100;
 
 const COLORS = {
-  frame: "#4b352a",
+  // สีเดียวกับพื้นการ์ด (surface) ให้มุมหน้าปัดกลืนไปกับกล่อง ไม่เป็นกรอบสี่เหลี่ยม
+  frame: "#5c4334",
   markerBackground: "#e3e3e3",
   zoneScore2: "#e3a072",
   zoneScore3: "#f0c415",

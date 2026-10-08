@@ -1,15 +1,15 @@
 import clsx from "clsx";
 import { socket } from "@/lib/socket";
 import { GameState } from "../..";
-import { TeamKey } from "../../TeamManagement";
+import { ArrowRight, RotateCcw, Target, Trophy } from "lucide-react";
+import Button from "@/component/Button";
+import { TEAM_LABEL, TEAM_TEXT_CLASS } from "../../../teamStyles";
 
 type RoundResultPanelProps = {
   gameState: GameState;
   isHost: boolean;
 };
 
-const TEAM_LABEL: Record<TeamKey, string> = { teamA: "ทีม A", teamB: "ทีม B" };
-const TEAM_TEXT_COLOR: Record<TeamKey, string> = { teamA: "text-teamA", teamB: "text-teamB" };
 const GUESS_LABEL = { left: "ซ้าย", right: "ขวา" };
 
 // สรุปผลรอบหลังเปิดหน้าปัด + ปุ่มของ host สำหรับเริ่มรอบถัดไป / เกมใหม่
@@ -31,24 +31,35 @@ const RoundResultPanel = ({ gameState, isHost }: RoundResultPanelProps) => {
   };
 
   return (
-    <div className="round-result-in w-full max-w-[420px] mx-auto mt-4 p-4 rounded-xl bg-playerHover text-white text-center flex flex-col gap-2">
+    <div
+      role="status"
+      aria-live="polite"
+      className="round-result-in mx-auto flex w-full max-w-[460px] flex-col gap-2 rounded-clay border-[3px] border-mediumYellow bg-surfaceDeep p-4 text-center text-lightBrown shadow-clay"
+    >
       {winner && (
-        <p className={clsx("text-[24px] font-bold", TEAM_TEXT_COLOR[winner])}>🏆 {TEAM_LABEL[winner]} ชนะ!</p>
+        <p className={clsx("flex items-center justify-center gap-2 font-display text-2xl font-semibold", TEAM_TEXT_CLASS[winner])}>
+          <Trophy size={26} aria-hidden="true" className="text-mediumYellow" />
+          {TEAM_LABEL[winner]} ชนะ!
+        </p>
       )}
 
       {roundResult ? (
         <>
-          <p className="text-[18px]">
-            <span className={clsx("font-bold", TEAM_TEXT_COLOR[roundResult.guessingTeam])}>
+          <p className="flex flex-wrap items-center justify-center gap-x-1.5 font-display text-lg">
+            <span className={clsx("font-bold", TEAM_TEXT_CLASS[roundResult.guessingTeam])}>
               {TEAM_LABEL[roundResult.guessingTeam]}
             </span>{" "}
-            ได้ <span className="font-bold text-[22px]">+{roundResult.guessingTeamPoints}</span>
-            {roundResult.guessingTeamPoints === 4 && " 🎯 เข้าเป้า!"}
+            ได้ <span className="text-2xl font-semibold text-mediumYellow">+{roundResult.guessingTeamPoints}</span>
+            {roundResult.guessingTeamPoints === 4 && (
+              <span className="inline-flex items-center gap-1 text-mediumYellow">
+                <Target size={18} aria-hidden="true" /> เข้าเป้า!
+              </span>
+            )}
             {roundResult.guessingTeamPoints === 0 && " (ไม่โดนโซน)"}
           </p>
 
-          <p className="text-[15px] opacity-90">
-            <span className={clsx("font-bold", TEAM_TEXT_COLOR[roundResult.opposingTeam])}>
+          <p className="text-[15px]">
+            <span className={clsx("font-bold", TEAM_TEXT_CLASS[roundResult.opposingTeam])}>
               {TEAM_LABEL[roundResult.opposingTeam]}
             </span>{" "}
             {roundResult.leftRightGuess ? (
@@ -65,9 +76,9 @@ const RoundResultPanel = ({ gameState, isHost }: RoundResultPanelProps) => {
           </p>
 
           {!winner && (
-            <p className="text-[14px] opacity-80">
+            <p className="text-sm text-muted">
               ตาต่อไป:{" "}
-              <span className={clsx("font-bold", TEAM_TEXT_COLOR[roundResult.nextTurn])}>
+              <span className={clsx("font-bold", TEAM_TEXT_CLASS[roundResult.nextTurn])}>
                 {TEAM_LABEL[roundResult.nextTurn]}
               </span>
               {roundResult.isCatchUpTurn && " (catch-up: เข้าเป้าแต่ยังตามหลัง ได้เล่นต่อ)"}
@@ -75,16 +86,14 @@ const RoundResultPanel = ({ gameState, isHost }: RoundResultPanelProps) => {
           )}
         </>
       ) : (
-        <p className="text-[14px] opacity-80">รอบนี้ไม่คิดคะแนน (ยังไม่ได้เลือกทีมที่เล่น หรือยังไม่ได้สุ่มเป้า)</p>
+        <p className="text-sm text-muted">รอบนี้ไม่คิดคะแนน (ยังไม่ได้เลือกทีมที่เล่น หรือยังไม่ได้สุ่มเป้า)</p>
       )}
 
       {isHost && (
-        <button
-          onClick={winner ? handleStartNewGame : handleStartNextRound}
-          className="mt-2 self-center h-10 px-4 rounded-lg bg-lightBrown text-darkBrown font-medium"
-        >
+        <Button className="mt-2 self-center" onClick={winner ? handleStartNewGame : handleStartNextRound}>
+          {winner ? <RotateCcw size={18} aria-hidden="true" /> : <ArrowRight size={18} aria-hidden="true" />}
           {winner ? "เริ่มเกมใหม่" : "เริ่มรอบถัดไป"}
-        </button>
+        </Button>
       )}
     </div>
   );

@@ -4,13 +4,13 @@ import { socket } from "@/lib/socket";
 import type { LeftRightGuess as LeftRightGuessValue } from "@/server/game/scoring";
 import { GameState } from "../..";
 import { TeamKey } from "../../TeamManagement";
+import Button from "@/component/Button";
+import { TEAM_LABEL, TEAM_TEXT_CLASS } from "../../../teamStyles";
 
 type LeftRightGuessProps = {
   gameState: GameState;
   myTeam: TeamKey | null;
 };
-
-const TEAM_LABEL: Record<TeamKey, string> = { teamA: "ทีม A", teamB: "ทีม B" };
 
 const GUESS_OPTIONS: { value: LeftRightGuessValue; label: string }[] = [
   { value: "left", label: "ซ้าย" },
@@ -31,46 +31,42 @@ const LeftRightGuess = ({ gameState, myTeam }: LeftRightGuessProps) => {
     socket.emit("setLeftRightGuess", { roomId: gameState.roomId, guess });
   };
 
-  const teamBgColor = opposingTeam === "teamA" ? "bg-teamA" : "bg-teamB";
-  const teamTextColor = opposingTeam === "teamA" ? "text-teamA" : "text-teamB";
-
   return (
-    <div className="flex flex-col items-center gap-2 mt-2">
-      <p className="text-white text-[14px] text-center">
-        <span className={clsx("font-bold", teamTextColor)}>{TEAM_LABEL[opposingTeam]}</span>{" "}
+    <div className="mx-auto flex w-full max-w-[560px] flex-col items-center gap-3 rounded-clay border-2 border-clayEdge bg-surfaceDeep px-4 py-3">
+      <p className="text-center text-sm text-lightBrown">
+        <span className={clsx("font-semibold", TEAM_TEXT_CLASS[opposingTeam])}>{TEAM_LABEL[opposingTeam]}</span>{" "}
         แทงว่าเป้าอยู่ซ้ายหรือขวาของเข็ม
         {isLocked && (
-          <span className="inline-flex items-center gap-1 ml-2 opacity-80">
-            <Lock size={14} /> ล็อกแล้ว
+          <span className="ml-2 inline-flex items-center gap-1 text-muted">
+            <Lock size={14} aria-hidden="true" /> ล็อกแล้ว
           </span>
         )}
       </p>
 
-      <div className="flex gap-3">
+      <div role="group" aria-label="แทงซ้ายหรือขวา" className="flex gap-3">
         {GUESS_OPTIONS.map((option) => {
           const isSelected = gameState.leftRightGuess === option.value;
           return (
-            <button
+            <Button
               key={option.value}
+              size="sm"
+              variant={isSelected ? opposingTeam : "secondary"}
+              aria-pressed={isSelected}
               onClick={() => handleGuess(option.value)}
               disabled={!canGuess}
-              className={clsx(
-                "flex items-center gap-1 h-10 px-4 rounded-lg font-medium transition-all duration-200",
-                isSelected ? clsx(teamBgColor, "text-white scale-105") : "bg-lightBrown text-darkBrown",
-                !canGuess && "cursor-default pointer-events-none",
-                !canGuess && !isSelected && "opacity-50"
-              )}
+              // คำแทงที่เลือกไว้ยังต้องเห็นชัดแม้ปุ่มถูกล็อก
+              className={clsx("min-w-[96px]", isSelected && "disabled:opacity-100")}
             >
-              {option.value === "left" && <ChevronLeft size={18} />}
+              {option.value === "left" && <ChevronLeft size={18} aria-hidden="true" />}
               {option.label}
-              {option.value === "right" && <ChevronRight size={18} />}
-            </button>
+              {option.value === "right" && <ChevronRight size={18} aria-hidden="true" />}
+            </Button>
           );
         })}
       </div>
 
       {myTeam !== opposingTeam && !isLocked && (
-        <p className="text-white text-[12px] opacity-60">เฉพาะ{TEAM_LABEL[opposingTeam]} เท่านั้นที่กดแทงได้</p>
+        <p className="text-sm text-muted">เฉพาะ{TEAM_LABEL[opposingTeam]} เท่านั้นที่กดแทงได้</p>
       )}
     </div>
   );

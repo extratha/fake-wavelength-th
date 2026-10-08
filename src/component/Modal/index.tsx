@@ -1,4 +1,5 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
+import Button from "@/component/Button";
 
 export interface ModalOptions {
   open: boolean;
@@ -8,7 +9,6 @@ export interface ModalOptions {
 
 export default function Modal({ options, children }: { options: ModalOptions, children?: ReactNode }) {
   const { open, message, onClose } = options;
-  if (!open) return null;
 
   const handleClose = () => {
     if (onClose) {
@@ -16,44 +16,36 @@ export default function Modal({ options, children }: { options: ModalOptions, ch
     }
   };
 
+  // กด Esc เพื่อปิด (เฉพาะ modal ที่ปิดได้)
+  useEffect(() => {
+    if (!open || !onClose) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
   return (
     <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        zIndex: 999,
-        width: "100vw",
-        height: "100vh",
-        background: "rgba(0,0,0,0.4)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-      className="modal-backdrop-in"
+      className="modal-backdrop-in fixed inset-0 z-[999] flex items-center justify-center bg-black/50 p-4"
       onClick={handleClose}
     >
       <div
-        style={{
-          background: "#F0F2BD",
-          padding: 24,
-          borderRadius: 12,
-          minWidth: 300,
-          color: "#4B352A"
-        }}
-        className="modal-panel-in"
+        role="dialog"
+        aria-modal="true"
+        className="modal-panel-in w-full max-w-sm rounded-[1.75rem] border-[3px] border-clayEdge bg-lightBrown p-6 text-darkBrown shadow-clay"
         onClick={(e) => e.stopPropagation()}
       >
-        <p style={{ fontSize: 20, color: '#4B352A', fontWeight: 500 }}>{message}</p>
+        {message && <p className="font-display text-xl font-medium">{message}</p>}
 
         {onClose &&
-          <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <button
-              onClick={handleClose}
-              className="justify-self-end mt-4 px-4 py-2 rounded bg-[#CA7842] text-white cursor-pointer shadow-[0_2px_4px_rgba(202,120,66,0.6)] transition-shadow duration-200 active:scale-95 transition-transform"
-            >
+          <div className="mt-5 flex justify-end">
+            <Button variant="secondary" onClick={handleClose}>
               ปิด
-            </button>
+            </Button>
           </div>
         }
         {children}

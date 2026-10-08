@@ -1,24 +1,28 @@
 "use client";
 
-import Button from "@/component/Button";
 import InputText from "@/component/InputText";
 import Modal, { ModalOptions } from "@/component/Modal";
 import React, { useState, useEffect, useRef } from "react";
 import { Socket } from "socket.io-client";
 import { socket } from '@/lib/socket'
-import profileImage from "../../assets/app-profile.png";
-import Image from "next/image";
 import { v4 as uuidv4 } from 'uuid'
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useUserProfile } from "@/hooks/useUserProfile";
 import FullScreenLoading from "@/component/FullScreenLoading";
+import type { RoomSummary } from "@/server/game/roomCode";
+import LobbyHeader from "./LobbyHeader";
+import CreateRoomSection from "./CreateRoomSection";
+import JoinRoomSection from "./JoinRoomSection";
 
 const SOCKET_RESPONSE_TIMEOUT_MS = 5000
+// รหัสห้องที่ server สุ่มให้: 4 ตัว ตัวอักษรอังกฤษเล็ก/ใหญ่ และตัวเลข (ดู src/server/game/roomCode.ts)
+const ROOM_CODE_PATTERN = /^[a-zA-Z0-9]{4}$/
+const PLAYER_NAME_MAX_LENGTH = 20
 
-type RoomResponse = { success: boolean; message?: string }
+type CreateRoomResponse = { success: boolean; roomId?: string; message?: string }
+type JoinRoomResponse = { success: boolean; message?: string }
 
 export default function Lobby() {
-	const roomPattern = /^[a-zA-Z0-9-]+$/
 	const socketRef = useRef<Socket | null>(null)
 
 	const { profile, updateProfile } = useUserProfile();
@@ -26,8 +30,11 @@ export default function Lobby() {
 	const searchParams = useSearchParams()
 
 	const [roomIdInput, setRoomIdInput] = useState("");
-	const [availableRooms, setAvailableRooms] = useState<string[]>([]);
+	const [availableRooms, setAvailableRooms] = useState<RoomSummary[]>([]);
 	const [isLoading, setIsLoading] = useState(false)
+	// error ที่แสดงใต้ช่องกรอก (ตรวจตอนกดปุ่ม)
+	const [nameError, setNameError] = useState<string | undefined>()
+	const [roomCodeError, setRoomCodeError] = useState<string | undefined>()
 	const [modalOptions, setModalOptions] = useState<ModalOptions>({
 		open: false,
 		message: "",
@@ -37,7 +44,7 @@ export default function Lobby() {
 
 	// ลงทะเบียน listener ครั้งเดียว และถอดออกตอนออกจากหน้า (เดิมอยู่ใน render ทำให้ listener เพิ่มทุกครั้งที่ re-render)
 	useEffect(() => {
-		const handleUpdateRooms = (rooms: string[]) => {
+		const handleUpdateRooms = (rooms: RoomSummary[]) => {
 			setAvailableRooms(rooms);
 		};
 		socketCurrent.on("updateRooms", handleUpdateRooms);
@@ -51,32 +58,14 @@ export default function Lobby() {
 			updateProfile({ ...profile, userId: uuidv4() })
 		}
 
-		socketCurrent.on("connect", () => {
-		});
-
-		socketCurrent.emit("getAvailableRooms", (rooms: string[]) => {
+		socketCurrent.emit("getAvailableRooms", (rooms: RoomSummary[]) => {
 			setAvailableRooms(rooms);
 		});
+		// กลับมาหน้า lobby = ออกจากห้องเดิม (ถ้ามี)
 		socketCurrent.emit("leaveRoom", {
 			roomId: profile.roomId,
 			userId: profile.userId,
 			name: profile.userName
-		});
-
-
-		socketCurrent.on("roomCreated", () => {
-			setModalOptions({
-				open: true,
-				message: "สร้างห้องสำเร็จ! เข้าสู่ห้อง...",
-			});
-
-		});
-
-		socketCurrent.on("roomError", (msg: string) => {
-			setModalOptions({
-				open: true,
-				message: msg || "เกิดข้อผิดพลาดในการเข้าห้อง",
-			});
 		});
 
 		//eslint-disable-next-line react-hooks/exhaustive-deps
@@ -113,184 +102,116 @@ export default function Lobby() {
 		});
 	}
 
+	// ต้องต่อ server ได้ก่อนถึงจะสร้าง/เข้าห้องได้
+	const ensureConnected = () => {
+		if (socketRef.current?.connected) return true
+		setModalOptions({
+			open: true,
+			message: 'ยังเชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาลองใหม่อีกครั้ง',
+		});
+		return false
+	}
+
+	const validatePlayerName = () => {
+		if (profile.userName?.trim()) return true
+		setNameError('กรุณาตั้งชื่อก่อนเข้าเล่น')
+		return false
+	}
+
 	const createRoom = () => {
-		try {
-			setIsLoading(true)
+		if (!validatePlayerName()) return
+		if (!ensureConnected() || !socketRef.current) return
 
-			// เช็คสถานะการเชื่อมต่อจริง (เดิมเช็คแค่ว่ามี object socket ซึ่งมีอยู่เสมอ)
-			if (!socketRef.current?.connected) {
+		setIsLoading(true)
+		// ไม่ต้องส่งชื่อห้อง: server สุ่มรหัสห้องที่ไม่ซ้ำให้
+		socketRef.current.timeout(SOCKET_RESPONSE_TIMEOUT_MS).emit("createRoom", { name: profile.userName, userId: profile.userId }, (timeoutError: Error | null, response: CreateRoomResponse) => {
+			if (timeoutError) {
+				showServerTimeoutError()
+				return
+			}
+			if (response.success && response.roomId) {
+				updateProfile({ roomId: response.roomId })
+				router.push(`/main?room=${response.roomId}`);
+			} else {
+				// ต้องปิด loading ก่อน ไม่งั้นจอจะค้างที่ FullScreenLoading
+				setIsLoading(false)
 				setModalOptions({
 					open: true,
-					message: 'ยังเชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาลองใหม่อีกครั้ง',
+					message: response.message || "สร้างห้องไม่สำเร็จ",
 				});
-				throw 'connecting'
 			}
-			if (!profile.userName.trim() || !roomIdInput.trim()) {
-				setModalOptions({
-					open: true,
-					message: 'กรุณากรอกชื่อและหมายเลขห้อง',
-				});
-				throw 'require_fields'
-			}
-			if (!roomPattern.test(roomIdInput)) {
-				setModalOptions({
-					open: true,
-					message: 'หมายเลขห้องต้องเป็นตัวอักษร A-Z ตัวเลข และขีดกลาง (-) เท่านั้น',
-				});
-				throw 'validation_fields'
-			}
-
-			updateProfile({
-				...profile,
-				roomId: roomIdInput,
-			})
-
-			socketRef.current.timeout(SOCKET_RESPONSE_TIMEOUT_MS).emit("createRoom", { room: roomIdInput, name: profile.userName, userId: profile.userId }, (timeoutError: Error | null, response: RoomResponse) => {
-				if (timeoutError) {
-					showServerTimeoutError()
-					return
-				}
-				if (response.success) {
-					router.push(`/main?room=${roomIdInput}`);
-				} else {
-					// ต้องปิด loading ก่อน ไม่งั้นจอจะค้างที่ FullScreenLoading และ modal error ไม่แสดง
-					setIsLoading(false)
-					setModalOptions({
-						open: true,
-						message: response.message || "สร้างห้องไม่สำเร็จ",
-					});
-				}
-			});
-		} catch  {
-			setIsLoading(false)
-		}
+		});
 	};
 
 	const joinRoom = (roomIdProps?: string) => {
-		try {
-			setIsLoading(true)
+		// ห้องที่กดจากรายการ ต้องมาก่อนค่าที่พิมพ์ค้างไว้ในช่อง
+		const roomId = (roomIdProps || roomIdInput).trim()
 
-			// เช็คสถานะการเชื่อมต่อจริง (เดิมเช็คแค่ว่ามี object socket ซึ่งมีอยู่เสมอ)
-			if (!socketRef.current?.connected) {
-				setModalOptions({
-					open: true,
-					message: 'ยังเชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาลองใหม่อีกครั้ง',
-				});
-				throw 'connecting'
-			}
-
-			if (!profile.userName.trim() || (!roomIdInput.trim() && !roomIdProps)) {
-				setModalOptions({
-					open: true,
-					message: 'กรุณากรอกชื่อและหมายเลขห้อง',
-				});
-				throw 'require_fields'
-			}
-
-			// ห้องที่กดจากรายการ ต้องมาก่อนค่าที่พิมพ์ค้างไว้ในช่อง
-			const roomId = roomIdProps || roomIdInput
-
-			if (!roomPattern.test(roomId)) {
-				setModalOptions({
-					open: true,
-					message: 'หมายเลขห้องต้องเป็นตัวอักษร A-Z ตัวเลข และขีดกลาง (-) เท่านั้น',
-				});
-				throw 'validation_fields'
-			}
-
-			updateProfile({
-				...profile,
-				roomId,
-			})
-
-			socketRef.current.timeout(SOCKET_RESPONSE_TIMEOUT_MS).emit("joinRoom", {   roomId, name: profile.userName, userId: profile.userId }, (timeoutError: Error | null, response: RoomResponse) => {
-				if (timeoutError) {
-					showServerTimeoutError()
-					return
-				}
-				if (response.success) {
-					router.push(`/main?room=${roomId}`);
-				} else {
-					setIsLoading(false)
-					setModalOptions({
-						open: true,
-						message: response.message || "เข้าห้องไม่สำเร็จ",
-					});
-				}
-			});
-		} catch (error) {
-			console.log("Join Room Error : ", error)
-			setIsLoading(false)
+		const isNameValid = validatePlayerName()
+		if (!ROOM_CODE_PATTERN.test(roomId)) {
+			setRoomCodeError(roomId ? 'รหัสห้องต้องมี 4 ตัว (a-z, A-Z, 0-9)' : 'กรุณากรอกรหัสห้อง')
+			return
 		}
+		if (!isNameValid) return
+		if (!ensureConnected() || !socketRef.current) return
+
+		setIsLoading(true)
+		updateProfile({ roomId })
+
+		socketRef.current.timeout(SOCKET_RESPONSE_TIMEOUT_MS).emit("joinRoom", { roomId, name: profile.userName, userId: profile.userId }, (timeoutError: Error | null, response: JoinRoomResponse) => {
+			if (timeoutError) {
+				showServerTimeoutError()
+				return
+			}
+			if (response.success) {
+				router.push(`/main?room=${roomId}`);
+			} else {
+				setIsLoading(false)
+				setRoomCodeError(response.message || "เข้าห้องไม่สำเร็จ")
+			}
+		});
 	};
 
 	const handleCloseModal = () => {
 		setModalOptions(prev => ({ ...prev, open: false }));
 	};
 
-	if (isLoading) return <FullScreenLoading />
-
 	return (
-		<div style={{ display: 'flex', flexDirection: 'row' }}>
-			<div style={{ maxWidth: 400, margin: "auto", padding: 20 }}>
-				<Image
-					src={profileImage}
-					alt="App profile"
-					width={200}
-					height={200}
-					style={{ justifySelf: "center", borderRadius: "24px" }}
-				/>
-				<h1 style={{ fontSize: "24px", margin: "24px  0", textAlign: "center" }}>
-					Fake Wavelength TH
-				</h1>
-				<p className="-mt-4 mb-6 text-center text-[15px] italic opacity-80">
-					What&apos;s &ldquo;a lot&rdquo; to you isn&apos;t &ldquo;a lot&rdquo; to them. That&apos;s exactly why you have to guess!
-				</p>
+		<main className="min-h-screen px-4 pb-12 pt-8 sm:pt-12">
+			<div className="mx-auto flex w-full max-w-md flex-col gap-6">
+				<LobbyHeader />
+
 				<InputText
-					placeholder="ชื่อ"
+					label="ชื่อเล่นของคุณ"
+					placeholder="ชื่อที่เพื่อนจะเห็นในห้อง"
 					value={profile.userName || ""}
-					onChange={(e) =>
+					maxLength={PLAYER_NAME_MAX_LENGTH}
+					autoComplete="nickname"
+					onChange={(e) => {
+						setNameError(undefined)
 						updateProfile({ userName: e.target.value })
-					}
-					style={{ width: "100%", marginBottom: 10, padding: 8 }}
-				/>
-				<InputText
-					placeholder="หมายเลขห้อง"
-					value={roomIdInput}
-					onChange={(e) => setRoomIdInput(e.target.value)}
-					style={{ width: "100%", marginBottom: 10, padding: 8 }}
-				/>
-				<div
-					style={{
-						display: "flex",
-						flexDirection: "row",
-						gap: "16px",
-						justifyContent: "space-between",
-						alignItems: 'center'
 					}}
-				>
-					<Button onClick={createRoom}>สร้างห้อง</Button>
-					หรือ
-					<Button onClick={() => joinRoom()}>เข้าห้อง</Button>
-				</div>
-
-				<div className="flex flex-row mt-8 gap-2 items-center">
-					<p >ห้องที่มีอยู่: </p>
-					{availableRooms.map((room, index) => (
-						<React.Fragment key={index}>
-							<p key={room} className="min-w-8 min-h-8 p-1 cursor-pointer text-center rounded-[50px] hover:bg-mediumBrown"
-								onClick={() => joinRoom(room)} >{room}</p>
-							{availableRooms[index + 1] ? <>|</> : ''}
-						</React.Fragment>
-					))}
-				</div>
-				{/* ✅ Modal แสดงข้อความ */}
-				<Modal
-					options={{ ...modalOptions, onClose: handleCloseModal } as ModalOptions}
+					errorMessage={nameError}
 				/>
 
-			</div>
-		</div>
+				<CreateRoomSection onCreateRoom={createRoom} />
 
+				<JoinRoomSection
+					roomCode={roomIdInput}
+					roomCodeError={roomCodeError}
+					onRoomCodeChange={(roomCode) => {
+						setRoomCodeError(undefined)
+						setRoomIdInput(roomCode)
+					}}
+					onJoinRoom={joinRoom}
+					rooms={availableRooms}
+				/>
+			</div>
+
+			<Modal
+				options={{ ...modalOptions, onClose: handleCloseModal } as ModalOptions}
+			/>
+			{isLoading && <FullScreenLoading />}
+		</main>
 	);
 }
