@@ -117,7 +117,7 @@ const RoundResultPanel = ({ gameState, isHost, isNextRoundHighlighted }: RoundRe
                     <>
                       แทง{GUESS_LABEL[roundResult.leftRightGuess]}{" "}
                       {roundResult.isLeftRightGuessCorrect ? "ถูก" : "ไม่ถูก"}
-                      {roundResult.isLeftRightGuessCorrect && roundResult.guessingTeamPoints === 4 && " (แต่อีกทีมเข้าเป้า ไม่ได้คะแนน)"}
+                      {roundResult.isLeftRightGuessCorrect && roundResult.guessingTeamPoints === 4 && " (แต่อีกทีมทายตรงเผง)"}
                       {" "}
                       <span className="font-bold">+{roundResult.opposingTeamPoints}</span>
                     </>
