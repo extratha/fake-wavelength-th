@@ -6,6 +6,7 @@ import clsx from "clsx";
 import TeamManagement, { TeamKey } from "./TeamManagement";
 import { TEAM_BORDER_CLASS, TEAM_LABEL, TEAM_TEXT_CLASS } from "../teamStyles";
 import type { LeftRightGuess, RoundResult } from "@/server/game/scoring";
+import type { GuideTarget } from "../gameGuideLogic";
 
 export type PairWord = {
   words: [string, string];
@@ -34,6 +35,8 @@ export type GameState = {
   leftRightGuess: LeftRightGuess | null;
   isRoundLocked: boolean;
   isTargetSet: boolean;
+  // สุ่มคู่คำใหม่แล้วในรอบนี้หรือยัง (คู่คำของรอบก่อนยังค้างบนจอได้)
+  isPairWordPickedThisRound: boolean;
   roundNumber: number;
   roundResult: RoundResult | null;
   winner: TeamKey | null;
@@ -43,9 +46,13 @@ export type GameState = {
 
 type GameContentProps = {
   gameState: GameState
+  // ปุ่ม/ช่องที่ระบบนำทางไฮไลต์อยู่
+  guideTarget: GuideTarget | null
+  // คนให้คำใบ้กดแง้มดูเป้า
+  onPeekTarget: () => void
 }
 
-const GameContent = ({gameState}: GameContentProps) => {
+const GameContent = ({ gameState, guideTarget, onPeekTarget }: GameContentProps) => {
   const { profile } = useUserProfile();
 
   const isHost = profile?.userId === gameState?.hostId;
@@ -57,7 +64,7 @@ const GameContent = ({gameState}: GameContentProps) => {
 
   return (
     <div className="flex w-full flex-col gap-5">
-      <TeamManagement gameState={gameState} isHost={isHost} />
+      <TeamManagement gameState={gameState} isHost={isHost} isStartTurnHighlighted={guideTarget === "startTurn"} />
 
       {/* กล่องหน้าปัด: ขอบเป็นสีของทีมที่กำลังเล่น (แทนขอบไล่สีเคลื่อนไหวแบบเดิม) */}
       <section
@@ -76,7 +83,7 @@ const GameContent = ({gameState}: GameContentProps) => {
             "ยังไม่ได้เริ่มรอบ"
           )}
         </p>
-        <WheelDial gameState={gameState} />
+        <WheelDial gameState={gameState} guideTarget={guideTarget} onPeekTarget={onPeekTarget} />
       </section>
     </div>
   );

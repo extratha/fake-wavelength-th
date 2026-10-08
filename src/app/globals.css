@@ -18,6 +18,8 @@
 body {
   background: var(--background);
   color: var(--foreground);
+  /* เว้นที่ด้านบนเท่าความสูง popup ผลรอบ (ตั้งจาก RoundResultPanel) popup จะได้ไม่บังหัวห้องตอนเลื่อนขึ้นบนสุด */
+  padding-top: var(--result-sheet-height, 0px);
 }
 
 /* หัวข้อใช้ฟอนต์ display (Mitr) ทั้งแอป */
@@ -123,19 +125,41 @@ h3 {
   }
 }
 
-/* สรุปผลรอบ เลื่อนขึ้นมา */
-.round-result-in {
-  animation: roundResultIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+/* popup สรุปผลรอบ เลื่อนลงมาจากขอบบนจอ */
+.result-sheet-in {
+  animation: resultSheetIn 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-@keyframes roundResultIn {
+@keyframes resultSheetIn {
   from {
-    transform: translateY(12px);
+    transform: translateY(-100%);
     opacity: 0;
   }
 
   to {
     transform: translateY(0);
     opacity: 1;
+  }
+}
+
+/* ไฮไลต์ปุ่ม/ช่องที่ผู้เล่นต้องกดต่อ (ระบบนำทาง)
+   ใช้ outline ไม่ใช้ box-shadow เพราะปุ่มใช้เงาทำเอฟเฟกต์นูน/กดยุบอยู่แล้ว
+   ถ้าเครื่องตั้งค่าลดการเคลื่อนไหว animation จะถูกตัด เหลือกรอบนิ่ง ๆ ตามค่าเริ่มต้นด้านล่าง */
+.guide-highlight {
+  outline: 3px solid #f0c415;
+  outline-offset: 3px;
+  animation: guidePulse 1.4s ease-in-out infinite;
+}
+
+@keyframes guidePulse {
+  0%,
+  100% {
+    outline-color: #f0c415;
+    outline-offset: 3px;
+  }
+
+  50% {
+    outline-color: rgba(240, 196, 21, 0.35);
+    outline-offset: 7px;
   }
 }

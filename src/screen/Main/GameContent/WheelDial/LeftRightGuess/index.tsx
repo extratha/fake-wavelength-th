@@ -10,6 +10,8 @@ import { TEAM_LABEL, TEAM_TEXT_CLASS } from "../../../teamStyles";
 type LeftRightGuessProps = {
   gameState: GameState;
   myTeam: TeamKey | null;
+  // ระบบนำทางไฮไลต์ปุ่มแทง (ทีมตรงข้ามยังไม่ได้แทง)
+  isHighlighted: boolean;
 };
 
 const GUESS_OPTIONS: { value: LeftRightGuessValue; label: string }[] = [
@@ -18,7 +20,7 @@ const GUESS_OPTIONS: { value: LeftRightGuessValue; label: string }[] = [
 ];
 
 // ทีมตรงข้ามแทงว่าเป้าอยู่ซ้ายหรือขวาของเข็ม (สลับได้จนกว่าจะเปิดหน้าปัด)
-const LeftRightGuess = ({ gameState, myTeam }: LeftRightGuessProps) => {
+const LeftRightGuess = ({ gameState, myTeam, isHighlighted }: LeftRightGuessProps) => {
   const guessingTeam = gameState.turn;
   if (!guessingTeam) return null;
 
@@ -43,7 +45,11 @@ const LeftRightGuess = ({ gameState, myTeam }: LeftRightGuessProps) => {
         )}
       </p>
 
-      <div role="group" aria-label="แทงซ้ายหรือขวา" className="flex gap-3">
+      <div
+        role="group"
+        aria-label="แทงซ้ายหรือขวา"
+        className={clsx("flex gap-3 rounded-clay", isHighlighted && "guide-highlight")}
+      >
         {GUESS_OPTIONS.map((option) => {
           const isSelected = gameState.leftRightGuess === option.value;
           return (

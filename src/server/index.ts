@@ -11,6 +11,7 @@ import {
   ChatMessage,
   createPlayerMessage,
   createSystemMessage,
+  createClueMessage,
   formatRoundResultMessage,
   formatWinnerMessage,
   isChatRateLimited,
@@ -67,6 +68,8 @@ type GameState = {
   isRoundLocked: boolean;
   // สุ่มเป้าแล้วในรอบนี้หรือยัง (ถ้ายังไม่สุ่ม จะไม่คิดคะแนน)
   isTargetSet: boolean;
+  // สุ่มคู่คำใหม่แล้วในรอบนี้หรือยัง (คู่คำของรอบก่อนยังค้างอยู่บนจอ ใช้บอกขั้นตอนให้คนให้คำใบ้)
+  isPairWordPickedThisRound: boolean;
   roundNumber: number;
   roundResult: RoundResult | null;
   winner: TeamKey | null;
@@ -191,6 +194,7 @@ function resetPairWords(room: RoomType) {
     p.used = false;
   }
   room.state.pairWords = null;
+  room.state.isPairWordPickedThisRound = false;
 }
 
 const DISCONNECT_GRACE_PERIOD_MS = 5000;
@@ -368,6 +372,7 @@ function resetBoardForNewRound(room: RoomType) {
   room.state.leftRightGuess = null;
   room.state.isRoundLocked = false;
   room.state.isTargetSet = false;
+  room.state.isPairWordPickedThisRound = false;
   room.state.roundResult = null;
   room.state.clueGiverSkipRequested = false;
 }
@@ -420,6 +425,7 @@ io.on("connection", (socket) => {
           leftRightGuess: null,
           isRoundLocked: false,
           isTargetSet: false,
+          isPairWordPickedThisRound: false,
           roundNumber: 1,
           roundResult: null,
           winner: null,
@@ -773,6 +779,7 @@ io.on("connection", (socket) => {
       return
     }
 
+    room.state.isPairWordPickedThisRound = true
     updateRoomState(roomId, room)
     const left = room.state.pairWords ? room.state.pairWords.words[0] : ''
     const right = room.state.pairWords ? room.state.pairWords.words[1] : ''
@@ -898,8 +905,20 @@ io.on("connection", (socket) => {
     const trimmedClue = clue.trim()
     if (!trimmedClue) return
 
-    room.state.clue = trimmedClue.slice(0, CLUE_MAX_LENGTH)
+    const newClue = trimmedClue.slice(0, CLUE_MAX_LENGTH)
+    const isClueChanged = newClue !== room.state.clue
+    room.state.clue = newClue
     updateRoomState(roomId, room)
+
+    // ส่งคำใบ้เข้าแชทด้วย คนที่ดูแชทอยู่ (โดยเฉพาะบนมือถือ) จะได้ไม่พลาดคำใบ้ใหม่
+    // ส่งคำเดิมซ้ำไม่ต้องโพสต์ใหม่ กันแชทรก
+    if (isClueChanged) {
+      const clueGiverId = socket.userId!
+      const clueGiverName = room.users.get(clueGiverId)?.name ?? 'คนให้คำใบ้'
+      const message = createClueMessage(clueGiverId, clueGiverName, newClue)
+      appendChatMessage(room.chatMessages, message)
+      io.to(roomId).emit('chatMessage', message)
+    }
     console.log('The clue is : ', room.state.clue)
   })
 

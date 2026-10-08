@@ -11,6 +11,13 @@ import PlayersPanel from "./GameContent/PlayersPanel";
 import RoomHeader from "./RoomHeader";
 import ClueSection from "./ClueSection";
 import ChatPanel from "./ChatPanel";
+import GuideBanner from "./GuideBanner";
+import { getGameGuide } from "./gameGuideLogic";
+import { useVibrateOnNewClue } from "./useVibrateOnNewClue";
+
+// ระบุเป้าของรอบนี้ (คนให้คำใบ้ได้ค่า markerRotation จริงจาก server)
+const getTargetKey = (gameState: GameState) =>
+  `${gameState.roundNumber}:${gameState.clueGiver}:${gameState.markerRotation}`;
 
 export default function MainScreen() {
   const { profile, profileReady, updateProfile } = useUserProfile();
@@ -26,6 +33,11 @@ export default function MainScreen() {
     message: "",
   });
   const [isClueGiver, setIsClueGiver] = useState(false);
+  // เป้าที่คนให้คำใบ้แง้มดูไปแล้ว (ใช้บอกขั้นตอนถัดไปในแถบนำทาง)
+  // เก็บเป็น key ของเป้า: เริ่มรอบใหม่ / เปลี่ยนคนให้คำใบ้ / หมุนโซนใหม่ key จะไม่ตรง ถือว่ายังไม่ได้แง้มเป้าใหม่
+  const [peekedTargetKey, setPeekedTargetKey] = useState<string | null>(null);
+
+  useVibrateOnNewClue(gameState?.clue, !!profile.userId && gameState?.clueGiver === profile.userId);
 
   // ✅ ฟังก์ชันสำหรับรับ host ใหม่
   const handleNewHost = ({ userId }: { userId: string }) => {
@@ -161,6 +173,14 @@ export default function MainScreen() {
 
   if (!profileReady || !profile || !gameState) return <FullScreenLoading />;
 
+  const myUserId = profile.userId ?? "";
+  const currentTargetKey = getTargetKey(gameState);
+  const guide = getGameGuide(gameState, {
+    myUserId,
+    isHost: gameState.hostId === myUserId,
+    hasPeekedTarget: gameState.isTargetSet && peekedTargetKey === currentTargetKey,
+  });
+
   return (
     <main className="min-h-screen px-4 pb-12 pt-4 sm:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-[1280px]">
@@ -205,8 +225,13 @@ export default function MainScreen() {
           </div>
 
           <div className="order-2 flex min-w-0 flex-col gap-5 lg:col-start-1 lg:row-start-2">
-            <ClueSection gameState={gameState} isClueGiver={isClueGiver} />
-            <GameContent gameState={gameState} />
+            <GuideBanner guide={guide} />
+            <ClueSection gameState={gameState} isClueGiver={isClueGiver} guideTarget={guide.target} />
+            <GameContent
+              gameState={gameState}
+              guideTarget={guide.target}
+              onPeekTarget={() => setPeekedTargetKey(currentTargetKey)}
+            />
           </div>
         </div>
       </div>

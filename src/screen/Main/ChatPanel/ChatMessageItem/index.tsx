@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { Crown, Target } from "lucide-react";
+import { Crown, Lightbulb, Target } from "lucide-react";
 import type { ChatMessage } from "@/server/game/chat";
 import { TEAM_TEXT_CLASS, isTeamKey } from "../../teamStyles";
 
@@ -17,6 +17,24 @@ const formatTime = (sentAt: number) =>
 
 // ข้อความ 1 รายการ: ข้อความระบบอยู่กลาง ตัวเล็กสีจาง / ข้อความของเราชิดขวา / ของคนอื่นชิดซ้าย
 const ChatMessageItem = ({ message, isMine, senderTeam, isSenderHost, isSenderClueGiver }: ChatMessageItemProps) => {
+  // คำใบ้ใหม่: การ์ดกลางแชท ตัวใหญ่ ขอบเหลือง ให้เห็นชัดกว่าข้อความระบบอื่น
+  if (message.type === "clue") {
+    return (
+      <li className="flex justify-center px-1 py-1">
+        <div className="flex max-w-full flex-col items-center gap-0.5 rounded-2xl border-2 border-mediumYellow bg-mediumYellow/10 px-4 py-2 text-center">
+          <span className="flex items-center gap-1 text-xs text-muted">
+            <Lightbulb size={14} aria-hidden="true" className="text-mediumYellow" />
+            คำใบ้ใหม่จาก{" "}
+            <span className={clsx("font-semibold", isTeamKey(senderTeam) ? TEAM_TEXT_CLASS[senderTeam] : "text-lightBrown")}>
+              {message.name}
+            </span>
+          </span>
+          <span className="break-words font-display text-lg text-lightBrown">{message.clue}</span>
+        </div>
+      </li>
+    );
+  }
+
   if (message.type === "system") {
     return (
       <li className="px-2 py-0.5 text-center text-xs text-muted">

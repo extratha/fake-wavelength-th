@@ -1,3 +1,4 @@
+import clsx from "clsx";
 import { socket } from "@/lib/socket";
 import {  useState } from "react";
 import { GameState } from "../..";
@@ -9,9 +10,11 @@ type WordCardProps = {
   gameState: GameState;
   isHost: boolean;
   isClueGiver: boolean;
+  // ระบบนำทางไฮไลต์ปุ่ม "สุ่มคู่คำใหม่" (คนให้คำใบ้ยังไม่ได้สุ่มคู่คำของรอบนี้)
+  isPickPairWordHighlighted: boolean;
 }
 
-const WordCard = ({ gameState, isHost, isClueGiver }: WordCardProps) => {
+const WordCard = ({ gameState, isHost, isClueGiver, isPickPairWordHighlighted }: WordCardProps) => {
 
   const [modalOptions, setModalOptions] = useState<ModalOptions>({
     open: false,
@@ -61,7 +64,12 @@ const WordCard = ({ gameState, isHost, isClueGiver }: WordCardProps) => {
 
       {(isHost || isClueGiver) &&
         <div className="flex flex-wrap items-center justify-center gap-2">
-          <Button variant="secondary" size="sm" onClick={handleRandomPairWord}>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleRandomPairWord}
+            className={clsx(isPickPairWordHighlighted && "guide-highlight")}
+          >
             <Dices size={18} aria-hidden="true" />
             สุ่มคู่คำใหม่
           </Button>

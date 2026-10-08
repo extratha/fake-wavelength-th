@@ -60,7 +60,8 @@ const ChatPanel = ({ gameState, myUserId, isClueGiver, className }: ChatPanelPro
     const isFirstLoad = lastMessageIdRef.current === null;
     lastMessageIdRef.current = lastMessage.id;
 
-    const isMine = lastMessage.type === "player" && lastMessage.userId === myUserId;
+    // คำใบ้ที่เราส่งเองก็นับเป็นข้อความของเรา (ไม่ขึ้น badge ให้ตัวเอง)
+    const isMine = (lastMessage.type === "player" || lastMessage.type === "clue") && lastMessage.userId === myUserId;
     if (isFirstLoad || isMine || isNearBottomRef.current) {
       // กล่องแชทอยู่นอกจอ ไม่ต้องค่อย ๆ เลื่อน (มองไม่เห็นอยู่แล้ว)
       scrollToBottom(isFirstLoad || !isPanelVisible ? "auto" : "smooth");
@@ -68,8 +69,9 @@ const ChatPanel = ({ gameState, myUserId, isClueGiver, className }: ChatPanelPro
       setHasNewMessagesBelow(true);
     }
 
-    // นับข้อความของคนอื่นที่เข้ามาตอนกล่องแชทอยู่นอกจอ (ใช้กับปุ่มลอยบนมือถือ)
-    if (!isFirstLoad && !isMine && lastMessage.type === "player" && !isPanelVisible) {
+    // นับข้อความของคนอื่น (รวมคำใบ้ใหม่) ที่เข้ามาตอนกล่องแชทอยู่นอกจอ (ใช้กับปุ่มลอยบนมือถือ)
+    const isCountedAsUnread = lastMessage.type === "player" || lastMessage.type === "clue";
+    if (!isFirstLoad && !isMine && isCountedAsUnread && !isPanelVisible) {
       setUnreadCount((count) => count + 1);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -142,7 +144,7 @@ const ChatPanel = ({ gameState, myUserId, isClueGiver, className }: ChatPanelPro
               <li className="m-auto text-center text-sm text-muted">ยังไม่มีข้อความ เริ่มทักทายกันได้เลย</li>
             )}
             {messages.map((message) => {
-              const sender = message.type === "player" ? gameState.users.find((user) => user.userId === message.userId) : undefined;
+              const sender = message.type === "player" || message.type === "clue" ? gameState.users.find((user) => user.userId === message.userId) : undefined;
               return (
                 <ChatMessageItem
                   key={message.id}
