@@ -77,6 +77,12 @@ const MARKER_SPIN_EXTRA_TURNS = 2;
 const DIAL_MIN_DEG = -90;
 const DIAL_MAX_DEG = 90;
 
+// ตำแหน่งบนหน้าปัดในพิกัดของ viewBox (x: 0-200, y: 0-100) ใช้ได้ตรงกันทุกขนาดจอ
+export type DialPointerPosition = {
+  x: number;
+  y: number;
+};
+
 type WheelSvgProps = {
   dialRotation: number;
   markerRotation: number | null;
@@ -88,6 +94,8 @@ type WheelSvgProps = {
   onDialDragStart?: () => void;
   onDialDrag?: (rotation: number) => void;
   onDialDragEnd?: (rotation: number) => void;
+  // ตำแหน่งนิ้ว/cursor ระหว่างกดค้างบนหน้าปัด (null = ปล่อยแล้ว) ใช้แสดงวงกลมของผู้เล่นให้คนอื่นเห็น
+  onDialPointer?: (position: DialPointerPosition | null) => void;
 };
 
 const WheelSvg = ({
@@ -100,6 +108,7 @@ const WheelSvg = ({
   onDialDragStart,
   onDialDrag,
   onDialDragEnd,
+  onDialPointer,
 }: WheelSvgProps) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const lastDragRotationRef = useRef<number | null>(null);
@@ -134,6 +143,9 @@ const WheelSvg = ({
     }
   }, [markerRotation]);
 
+  // ตอนลากเอง ไม่ใส่ transition ให้เข็มตามนิ้วทันที
+  const dialTransition = isDraggingDial ? undefined : `transform 300ms ${TAILWIND_DEFAULT_EASING}`;
+
   // ---------- Highlight zone under needle after reveal ----------
   const zoneIndexUnderNeedle =
     screenOpen && showScoreZones && markerRotation !== null
@@ -155,6 +167,20 @@ const WheelSvg = ({
     return Math.round(Math.min(DIAL_MAX_DEG, Math.max(DIAL_MIN_DEG, angleDeg)));
   };
 
+  // ตำแหน่ง pointer ในพิกัด viewBox (จำกัดไว้ในกรอบหน้าปัด เพราะลากออกนอกกรอบได้ระหว่าง capture)
+  const getPositionFromPointer = (event: React.PointerEvent<SVGSVGElement>): DialPointerPosition | null => {
+    const svgElement = svgRef.current;
+    if (!svgElement) return null;
+
+    const rect = svgElement.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * CENTER_X * 2;
+    const y = ((event.clientY - rect.top) / rect.height) * CENTER_Y;
+    return {
+      x: Math.min(CENTER_X * 2, Math.max(0, x)),
+      y: Math.min(CENTER_Y, Math.max(0, y)),
+    };
+  };
+
   const handlePointerDown = (event: React.PointerEvent<SVGSVGElement>) => {
     if (!canDragDial) return;
     const rotation = getRotationFromPointer(event);
@@ -164,10 +190,14 @@ const WheelSvg = ({
     lastDragRotationRef.current = rotation;
     onDialDragStart?.();
     onDialDrag?.(rotation);
+    onDialPointer?.(getPositionFromPointer(event));
   };
 
   const handlePointerMove = (event: React.PointerEvent<SVGSVGElement>) => {
     if (!isDraggingDial) return;
+    // ตำแหน่งเปลี่ยนได้แม้มุมเข็มไม่เปลี่ยน (เช่นลากเข้าหา/ออกจากจุดหมุน) จึงส่งก่อนเช็คมุม
+    onDialPointer?.(getPositionFromPointer(event));
+
     const rotation = getRotationFromPointer(event);
     if (rotation === null || rotation === lastDragRotationRef.current) return;
 
@@ -176,6 +206,7 @@ const WheelSvg = ({
   };
 
   const handlePointerUp = () => {
+    onDialPointer?.(null);
     if (!isDraggingDial || lastDragRotationRef.current === null) return;
     onDialDragEnd?.(lastDragRotationRef.current);
     lastDragRotationRef.current = null;
@@ -185,7 +216,8 @@ const WheelSvg = ({
     <svg
       ref={svgRef}
       viewBox={`0 0 ${CENTER_X * 2} ${CENTER_Y}`}
-      className={`block w-full h-auto select-none ${canDragDial ? "cursor-grab active:cursor-grabbing" : ""}`}
+      // ใช้ cursor ปกติ (ไม่ใช่รูปมือ) ผู้เล่นเห็นวงกลมของตัวเองตามเมาส์อยู่แล้ว
+      className="block w-full h-auto select-none"
       // กันหน้าเลื่อนตอนลากบนจอสัมผัส
       style={{ touchAction: canDragDial ? "none" : undefined }}
       role="img"
@@ -262,8 +294,7 @@ const WheelSvg = ({
       </g>
 
       {/* Wheel Dial: เข็มที่ทีมหมุนเพื่อเดา */}
-      {/* ตอนลากเอง ไม่ใส่ transition ให้เข็มตามนิ้วทันที */}
-      <g style={rotateAroundCenter(dialRotation, isDraggingDial ? undefined : `transform 300ms ${TAILWIND_DEFAULT_EASING}`)}>
+      <g style={rotateAroundCenter(dialRotation, dialTransition)}>
         <line
           x1={CENTER_X}
           y1={CENTER_Y}

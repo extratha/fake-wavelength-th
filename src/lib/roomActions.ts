@@ -64,6 +64,11 @@ export const emitRoomAction = (eventName: string, ...args: unknown[]) => {
   pendingActions.push({ eventName, args, queuedAt: Date.now() });
 };
 
+// สถานะชั่วคราว (เช่น "กำลังแตะหน้าปัด"): ส่งเฉพาะตอนอยู่ในห้อง ไม่เก็บไว้ส่งทีหลัง เพราะหมดความหมายแล้ว
+export const emitIfRoomJoined = (eventName: string, ...args: unknown[]) => {
+  if (snapshot.isRoomJoined && socket.connected) socket.emit(eventName, ...args);
+};
+
 // หน้า Main เรียกเมื่อ joinRoom สำเร็จ (true) และตอนออกจากหน้าห้อง (false)
 export const setRoomJoined = (isRoomJoined: boolean) => {
   updateSnapshot({ isRoomJoined });

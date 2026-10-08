@@ -163,3 +163,22 @@ h3 {
     outline-offset: 7px;
   }
 }
+
+/* วงกลมของผู้เล่นที่แตะหน้าปัด เด้งขึ้นมาตอนเริ่มแตะ (ขยายจากจุดกึ่งกลางของวงกลมเอง) */
+.dial-pointer-in {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: dialPointerIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes dialPointerIn {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}

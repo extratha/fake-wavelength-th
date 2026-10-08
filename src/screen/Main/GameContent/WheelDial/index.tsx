@@ -1,7 +1,7 @@
 import debounce from "lodash.debounce";
 import { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
-import { emitRoomAction } from "@/lib/roomActions";
+import { emitIfRoomJoined, emitRoomAction } from "@/lib/roomActions";
 import { GameState } from "..";
 import { useUserProfile } from "@/hooks/useUserProfile";
 
@@ -12,7 +12,11 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import Modal from "@/component/Modal";
 import WordCard from "./WordCard";
 // หน้าปัดใช้ SVG แล้ว (เวอร์ชัน PNG เดิมเก็บไว้ที่ ./WheelPng แต่ไม่ได้ import เพื่อไม่ต้องโหลดรูป)
-import WheelSvg from "./WheelSvg";
+import WheelSvg, { DialPointerPosition } from "./WheelSvg";
+import { useDialPointers } from "./useDialPointers";
+import DialPointerLayer, { DialPointerPlayer } from "./DialPointerLayer";
+import { getNameInitial } from "../../nameInitial";
+import { isTeamKey } from "../../teamStyles";
 import LeftRightGuess from "./LeftRightGuess";
 import RoundResultPanel from "./RoundResultPanel";
 import { TeamKey } from "../TeamManagement";
@@ -122,6 +126,56 @@ const WheelDial = ({ gameState, guideTarget, onPeekTarget }: WheelDialProps) => 
     return () => clearTimeout(fallbackTimer);
   }, [isDraggingDial, localDialRotation, gameState.dialRotation]);
 
+  // ---------- วงกลมของผู้เล่นที่กำลังแตะ/ลากหน้าปัด (ตามนิ้ว/cursor) ----------
+  const { activeUserIds, samplesRef, moveMyPointer, removeMyPointer } = useDialPointers(
+    profile.userId ?? "",
+    gameState.roundNumber,
+    gameState.isRoundLocked
+  );
+
+  // ส่งตำแหน่งให้คนอื่นไม่เกินทุก 50ms (~20 ครั้ง/วินาที) ฝั่งคนดูประมาณตำแหน่งระหว่างจุดให้เคลื่อนลื่นเอง
+  // เป็นสถานะชั่วคราว: ไม่เก็บไว้ส่งทีหลังถ้ากำลังเชื่อมต่อใหม่
+  const emitDialPointerThrottled = useMemo(
+    () =>
+      debounce(
+        (roomId: string, position: DialPointerPosition) => {
+          emitIfRoomJoined("dialPointer", { roomId, ...position });
+        },
+        50,
+        { maxWait: 50 }
+      ),
+    []
+  );
+
+  useEffect(() => {
+    return () => emitDialPointerThrottled.cancel();
+  }, [emitDialPointerThrottled]);
+
+  const handleDialPointer = (position: DialPointerPosition | null) => {
+    if (position) {
+      moveMyPointer(position);
+      emitDialPointerThrottled(gameState.roomId, position);
+      return;
+    }
+    // ปล่อยนิ้ว: ยกเลิกตำแหน่งที่รอส่ง แล้วบอกให้ลบวงกลมทันที
+    removeMyPointer();
+    emitDialPointerThrottled.cancel();
+    emitIfRoomJoined("dialPointerEnd", { roomId: gameState.roomId });
+  };
+
+  const dialPointerPlayers: DialPointerPlayer[] = activeUserIds.flatMap((userId) => {
+    const user = gameState.users.find((roomUser) => roomUser.userId === userId);
+    if (!user) return [];
+    return [
+      {
+        userId,
+        initial: getNameInitial(user.name),
+        team: isTeamKey(user.team) ? user.team : null,
+        isMine: userId === profile.userId,
+      },
+    ];
+  });
+
   const handleDialDragStart = () => {
     setIsDraggingDial(true);
   };
@@ -226,8 +280,12 @@ const WheelDial = ({ gameState, guideTarget, onPeekTarget }: WheelDialProps) => 
             onDialDragStart={isDialLocked ? undefined : handleDialDragStart}
             onDialDrag={isDialLocked ? undefined : handleDialDrag}
             onDialDragEnd={isDialLocked ? undefined : handleDialDragEnd}
+            onDialPointer={isDialLocked ? undefined : handleDialPointer}
           />
         </div>
+
+        {/* วงกลมของผู้เล่นทับหน้าปัด (อยู่นอกกล่อง overflow-hidden วงกลมที่ขอบจะได้ไม่ถูกตัด) */}
+        <DialPointerLayer players={dialPointerPlayers} samplesRef={samplesRef} />
 
         {/* ปุ่มแง้มดูเป้า (เฉพาะคนให้คำใบ้): ลอยทับขอบล่างกลางหน้าปัด ~60% (กลางหน้าปัดไม่มีข้อมูลสำคัญ)
             ใช้ div ห่อเพื่อจัดตำแหน่ง ไม่ให้ transform ชนกับเอฟเฟกต์กดยุบของปุ่ม

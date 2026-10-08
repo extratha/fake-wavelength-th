@@ -620,6 +620,30 @@ io.on("connection", (socket) => {
     updateRoomState(roomId, room);
   });
 
+  // ตำแหน่งนิ้ว/cursor ของผู้เล่นที่กำลังแตะ/ลากหน้าปัด: ส่งต่อให้คนอื่นในห้องแสดงเป็นวงกลมสีทีม
+  // เป็นสถานะชั่วคราว ไม่เก็บใน state / ไม่ส่งกลับหาคนส่ง (ฝั่งตัวเองวาดเองทันทีอยู่แล้ว)
+  socket.on("dialPointer", ({ roomId, x, y }) => {
+    const room = rooms[roomId];
+    if (!room) return;
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+    // แสดงได้เฉพาะคนที่หมุนเข็มได้ และเข็มยังไม่ล็อก (ไม่ต้องแจ้ง actionRejected เพราะเป็นแค่การแสดงผล)
+    if (!canRotateDial(socket, room) || room.state.isRoundLocked) return;
+
+    // พิกัด viewBox ของหน้าปัด (x: 0-200, y: 0-100)
+    const position = {
+      x: Math.min(200, Math.max(0, x)),
+      y: Math.min(100, Math.max(0, y)),
+    };
+    socket.to(roomId).emit("dialPointer", { userId: socket.userId, ...position });
+  });
+
+  // ปล่อยนิ้ว/เมาส์: ส่งได้เสมอ (เผื่อสิทธิ์เปลี่ยนระหว่างลาก วงกลมจะได้ไม่ค้าง)
+  socket.on("dialPointerEnd", ({ roomId }) => {
+    const room = rooms[roomId];
+    if (!room || !isRoomMember(socket, room)) return;
+    socket.to(roomId).emit("dialPointerEnd", { userId: socket.userId });
+  });
+
   socket.on("toggleScreen", ({ roomId, screenOpen, userName }) => {
     const room = rooms[roomId];
     if (!room) return;
