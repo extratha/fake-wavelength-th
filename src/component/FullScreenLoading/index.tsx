@@ -1,8 +1,15 @@
+import { LoaderCircle } from "lucide-react";
+
 const FullScreenLoading = () => {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-      <div className="text-white text-xl font-medium">
-        กำลังโหลด...
+    <div
+      role="status"
+      aria-live="polite"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+    >
+      <div className="flex items-center gap-3 rounded-[1.75rem] border-[3px] border-clayEdge bg-surface px-6 py-4 shadow-clay">
+        <LoaderCircle aria-hidden="true" className="h-6 w-6 animate-spin text-mediumYellow" />
+        <span className="font-display text-lg text-lightBrown">กำลังโหลด...</span>
       </div>
     </div>
   );
