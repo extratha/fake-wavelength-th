@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import clsx from "clsx";
-import { MessageCircle, Target } from "lucide-react";
+import { Hand, MessageCircle, Target } from "lucide-react";
 import { socket } from "@/lib/socket";
 import Button from "@/component/Button";
 import Card from "@/component/Card";
@@ -33,6 +33,15 @@ const ClueSection = ({ gameState, isClueGiver }: ClueSectionProps) => {
 
   const clueGiverUser = gameState.users.find((user) => user.userId === gameState.clueGiver);
   const clueGiverTeam = clueGiverUser?.team;
+  // ยกมือขอข้ามได้จนกว่าจะเปิดหน้าปัด (host เป็นคนเลือกคนใหม่เอง)
+  const canRequestSkip = isClueGiver && !gameState.isRoundLocked;
+
+  const handleToggleSkipRequest = () => {
+    socket.emit("setClueGiverSkipRequest", {
+      roomId: gameState.roomId,
+      requested: !gameState.clueGiverSkipRequested,
+    });
+  };
 
   return (
     <Card>
@@ -53,6 +62,12 @@ const ClueSection = ({ gameState, isClueGiver }: ClueSectionProps) => {
                 </span>
               ) : (
                 <span className="text-lightBrown">ยังไม่ได้เลือก</span>
+              )}
+              {gameState.clueGiverSkipRequested && (
+                <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-mediumYellow px-2 py-0.5 text-xs font-semibold text-darkBrown">
+                  <Hand size={12} aria-hidden="true" />
+                  ขอข้าม
+                </span>
               )}
             </p>
             {/* คำใบ้ล่าสุด: aria-live ให้โปรแกรมอ่านหน้าจออ่านเมื่อคำใบ้เปลี่ยน */}
@@ -86,6 +101,26 @@ const ClueSection = ({ gameState, isClueGiver }: ClueSectionProps) => {
           </form>
         )}
       </div>
+
+      {/* คนให้คำใบ้ไม่อยากเป็น: ยกมือให้ host เลือกคนใหม่ */}
+      {canRequestSkip && (
+        <div className="mt-4 flex flex-wrap items-center gap-3 border-t-2 border-clayEdge/60 pt-4">
+          <p className="min-w-0 flex-1 text-sm text-muted">
+            {gameState.clueGiverSkipRequested
+              ? "ยกมือแล้ว รอ host เลือกคนให้คำใบ้คนใหม่"
+              : "ไม่อยากเป็นคนให้คำใบ้รอบนี้? ยกมือให้ host เลือกคนอื่นได้"}
+          </p>
+          <Button
+            size="sm"
+            variant={gameState.clueGiverSkipRequested ? "ghost" : "secondary"}
+            aria-pressed={gameState.clueGiverSkipRequested}
+            onClick={handleToggleSkipRequest}
+          >
+            <Hand size={16} aria-hidden="true" />
+            {gameState.clueGiverSkipRequested ? "เอามือลง" : "ยกมือขอข้าม"}
+          </Button>
+        </div>
+      )}
     </Card>
   );
 };

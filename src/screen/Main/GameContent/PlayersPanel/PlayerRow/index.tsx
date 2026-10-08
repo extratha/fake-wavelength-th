@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { Crown, EllipsisVertical, Target, UserX, X } from "lucide-react";
+import { Crown, EllipsisVertical, Hand, Target, UserX, X } from "lucide-react";
 import IconButton from "@/component/IconButton";
 
 export type PlayerAction = "clueGiver" | "assignHost" | "kick";
@@ -9,6 +9,8 @@ type PlayerRowProps = {
   isMe: boolean;
   isPlayerHost: boolean;
   isPlayerClueGiver: boolean;
+  // คนให้คำใบ้คนนี้ยกมือขอข้าม
+  isRequestingSkip: boolean;
   // host ของห้องเท่านั้นที่เห็นปุ่ม ⋮
   canManage: boolean;
   isMenuOpen: boolean;
@@ -25,6 +27,7 @@ const PlayerRow = ({
   isMe,
   isPlayerHost,
   isPlayerClueGiver,
+  isRequestingSkip,
   canManage,
   isMenuOpen,
   onToggleMenu,
@@ -44,6 +47,12 @@ const PlayerRow = ({
         {isMe && <span className="shrink-0 text-sm text-muted">(คุณ)</span>}
 
         <span className="ml-auto flex shrink-0 items-center gap-1.5">
+          {isRequestingSkip && (
+            <span title="ยกมือขอข้าม" className="flex h-7 w-7 animate-bounce items-center justify-center rounded-full bg-lightBrown text-darkBrown">
+              <Hand size={16} aria-hidden="true" />
+              <span className="sr-only">ยกมือขอข้าม</span>
+            </span>
+          )}
           {isPlayerClueGiver && (
             <span title="คนให้คำใบ้" className="flex h-7 w-7 items-center justify-center rounded-full bg-mediumYellow text-darkBrown">
               <Target size={16} aria-hidden="true" />
