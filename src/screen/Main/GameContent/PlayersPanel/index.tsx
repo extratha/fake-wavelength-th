@@ -137,7 +137,7 @@ const PlayersPanel = ({
     <section
       ref={panelRef}
       aria-label="รายชื่อผู้เล่น"
-      className="rounded-[1.75rem] border-[3px] border-clayEdge bg-surface p-4 shadow-clay sm:p-5"
+      className="rounded-[1.75rem] border-[3px] border-clayEdge bg-surface p-4 shadow-clay sm:p-5 lg:flex lg:min-h-0 lg:flex-col"
     >
       {/* หัวกล่อง: กดเพื่อพับ/กาง (พับแล้วบน desktop แชทจะได้พื้นที่เพิ่ม) */}
       <button
@@ -158,11 +158,11 @@ const PlayersPanel = ({
         />
       </button>
 
-      {/* desktop: สูงไม่เกินครึ่งจอ ที่เหลือให้แชท ถ้ารายชื่อยาวให้ scroll ในกล่อง */}
+      {/* desktop: ทั้งกล่องสูงไม่เกินครึ่งของคอลัมน์ (กำหนดที่ wrapper ใน Main) ที่เหลือให้แชท ถ้ารายชื่อยาวให้ scroll ในกล่อง */}
       <div
         id="players-panel-content"
         className={clsx(
-          "mt-4 flex-col gap-4 lg:-mr-2 lg:max-h-[42vh] lg:overflow-y-auto lg:pr-2",
+          "mt-4 flex-col gap-4 lg:-mr-2 lg:min-h-0 lg:overflow-y-auto lg:pr-2",
           isExpanded ? "flex" : "hidden",
         )}
       >
