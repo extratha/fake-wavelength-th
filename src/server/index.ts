@@ -4,6 +4,7 @@ import { Server, Socket } from "socket.io";
 import cors from "cors";
 import { pairWords as fullPairWords, PairWord } from './constant/pairWords';
 import { calculateRoundResult, getOpposingTeam, LeftRightGuess, RoundResult } from './game/scoring';
+import { generateUniqueRoomCode, RoomSummary } from './game/roomCode';
 
 declare module "socket.io" {
   interface Socket {
@@ -77,6 +78,18 @@ const rooms: Record<string, RoomType> = {};
 
 const roomTimeouts: Record<string, NodeJS.Timeout> = {};
 
+// รายชื่อห้องสำหรับหน้า lobby: เฉพาะห้องที่มีคนอยู่ (ห้องว่างที่รอลบไม่ต้องโชว์)
+function getRoomSummaries(): RoomSummary[] {
+  return Object.entries(rooms)
+    .filter(([, room]) => room.users.size > 0)
+    .map(([roomId, room]) => ({ roomId, playerCount: room.users.size }));
+}
+
+// แจ้งทุกคน (รวมคนที่อยู่หน้า lobby) เมื่อมีห้องเกิด/หาย หรือจำนวนผู้เล่นในห้องเปลี่ยน
+function broadcastRoomList() {
+  io.emit("updateRooms", getRoomSummaries());
+}
+
 function scheduleRoomDeletion(roomId: string) {
   if (roomTimeouts[roomId]) return;
 
@@ -84,7 +97,7 @@ function scheduleRoomDeletion(roomId: string) {
     if (rooms[roomId]?.users.size === 0) {
       delete rooms[roomId];
       console.log(`💥 Room ${roomId} deleted`);
-      io.emit("updateRooms", Object.keys(rooms));
+      broadcastRoomList();
     }
     delete roomTimeouts[roomId];
   }, 60000);
@@ -189,6 +202,7 @@ function removeDisconnectedUser(userId: string) {
 
     // แจ้งคนที่เหลือในห้อง ให้รายชื่อผู้เล่นอัปเดต
     updateRoomState(roomId, room);
+    broadcastRoomList();
 
     if (room.users.size === 0 && !roomTimeouts[roomId]) {
       scheduleRoomDeletion(roomId);
@@ -321,14 +335,15 @@ function startRoundForTeam(room: RoomType, team: TeamKey) {
 io.on("connection", (socket) => {
 
   socket.on("getAvailableRooms", (callback) => {
-    const availableRooms = Object.keys(rooms);
-    console.log('Available rooms : ', availableRooms)
-    callback(availableRooms);
+    if (typeof callback !== 'function') return;
+    callback(getRoomSummaries());
   });
 
-  socket.on("createRoom", ({ room, name, userId }, callback) => {
-    if (rooms[room]) {
-      if (callback) callback({ success: false, message: "ห้องนี้มีอยู่แล้ว ไม่สามารถสร้างซ้ำได้" });
+  socket.on("createRoom", ({ name, userId }, callback) => {
+    // server เป็นคนสุ่มรหัสห้อง จะได้รับประกันว่าไม่ซ้ำกับห้องที่มีอยู่
+    const room = generateUniqueRoomCode((code) => !!rooms[code]);
+    if (!room) {
+      if (callback) callback({ success: false, message: "สร้างห้องไม่สำเร็จ กรุณาลองใหม่อีกครั้ง" });
     } else {
 
       const user = { name, userId };
@@ -371,8 +386,8 @@ io.on("connection", (socket) => {
 
       console.log(`Room ${room} created by ${name} (${userId})`);
 
-      io.emit("updateRooms", Object.keys(rooms));
-      if (callback) callback({ success: true });
+      broadcastRoomList();
+      if (callback) callback({ success: true, roomId: room });
 
       updateRoomState(room, rooms[room]);
     }
@@ -403,6 +418,7 @@ io.on("connection", (socket) => {
     });
 
     updateRoomState(roomId, existingRoom)
+    broadcastRoomList()
 
     console.log(`${name} (${userId}) "JOINED" room ${roomId}`);
   });
@@ -440,7 +456,7 @@ io.on("connection", (socket) => {
       }
     }
     updateRoomState(roomId, room)
-
+    broadcastRoomList()
 
     if (room.users.size === 0 && !roomTimeouts[roomId]) {
       scheduleRoomDeletion(roomId)
@@ -503,6 +519,7 @@ io.on("connection", (socket) => {
     }
 
     updateRoomState(roomId, room);
+    broadcastRoomList();
 
     // ลบออกจาก socket room
     const sockets = io.sockets.sockets;
