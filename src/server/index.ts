@@ -403,7 +403,9 @@ io.on("connection", (socket) => {
       return;
     }
 
-    existingRoom.users.set(userId, { name, userId });
+    // ถ้ายังอยู่ในห้อง (เช่น reconnect ระหว่าง grace period) ให้เก็บทีมเดิมไว้ ไม่งั้นทีมจะหายทุกครั้งที่ต่อใหม่
+    const userAlreadyInRoom = existingRoom.users.get(userId);
+    existingRoom.users.set(userId, { ...userAlreadyInRoom, name, userId });
     socket.join(roomId);
     socket.userId = userId;
 
