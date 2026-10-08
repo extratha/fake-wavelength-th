@@ -10,6 +10,7 @@ import GameContent, { GameState } from './GameContent'
 import PlayersPanel from './GameContent/PlayersPanel'
 import RoomHeader from './RoomHeader'
 import ClueSection from './ClueSection'
+import ChatPanel from './ChatPanel'
 
 export default function MainScreen() {
   const { profile, profileReady, updateProfile } = useUserProfile()
@@ -169,26 +170,38 @@ export default function MainScreen() {
           </p>
         )}
 
-        <RoomHeader
-          roomId={roomId ?? gameState.roomId}
-          playerName={profile.userName}
-          isHost={isHost}
-          onLeaveRoom={handleLeaveRoomToLobby}
-        />
-
-        {/* desktop: เกมอยู่ซ้าย รายชื่อผู้เล่นอยู่ขวา / มือถือ: รายชื่อผู้เล่น (พับได้) อยู่บนสุด */}
-        <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-6">
-          <aside className="lg:sticky lg:top-4 lg:col-start-2 lg:row-start-1">
-            <PlayersPanel
-              users={gameState.users}
-              hostId={gameState.hostId}
+        {/* desktop: คอลัมน์ซ้าย = หัวห้อง + เกม / คอลัมน์ขวา (สูงเท่าจอ เริ่มจากบนสุด) = รายชื่อผู้เล่น + แชท
+            มือถือ: หัวห้อง → รายชื่อผู้เล่น → เกม → แชท
+            (ใช้ display: contents ให้ 2 กล่องในคอลัมน์ขวาไปเรียงลำดับกับส่วนอื่นบนมือถือได้) */}
+        <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-x-6">
+          <div className="order-none lg:col-start-1 lg:row-start-1">
+            <RoomHeader
+              roomId={roomId ?? gameState.roomId}
+              playerName={profile.userName}
               isHost={isHost}
-              clueGiver={gameState.clueGiver}
-              clueGiverSkipRequested={gameState.clueGiverSkipRequested}
+              onLeaveRoom={handleLeaveRoomToLobby}
             />
-          </aside>
+          </div>
 
-          <div className="flex min-w-0 flex-col gap-5 lg:col-start-1 lg:row-start-1">
+          <div className="contents lg:sticky lg:top-4 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:flex lg:h-[calc(100vh-2rem)] lg:flex-col lg:gap-5">
+            <div className="order-1 lg:shrink-0">
+              <PlayersPanel
+                users={gameState.users}
+                hostId={gameState.hostId}
+                isHost={isHost}
+                clueGiver={gameState.clueGiver}
+                clueGiverSkipRequested={gameState.clueGiverSkipRequested}
+              />
+            </div>
+            <ChatPanel
+              gameState={gameState}
+              myUserId={profile.userId ?? ''}
+              isClueGiver={isClueGiver}
+              className="order-3 h-[480px] lg:h-auto lg:min-h-[240px] lg:flex-1"
+            />
+          </div>
+
+          <div className="order-2 flex min-w-0 flex-col gap-5 lg:col-start-1 lg:row-start-2">
             <ClueSection gameState={gameState} isClueGiver={isClueGiver} />
             <GameContent gameState={gameState} />
           </div>

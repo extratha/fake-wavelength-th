@@ -40,11 +40,14 @@ const PanelTitle = ({ playerCount }: { playerCount: number }) => (
   </>
 );
 
-// รายชื่อผู้เล่นในห้อง (desktop อยู่คอลัมน์ขวาและกางไว้ตลอด / มือถือพับเก็บได้)
+const DESKTOP_MEDIA_QUERY = "(min-width: 1024px)";
+
+// รายชื่อผู้เล่นในห้อง (desktop อยู่คอลัมน์ขวาเหนือแชท / มือถืออยู่บนสุด) พับ/กางได้ทั้งสองแบบ
 const PlayersPanel = ({ users, hostId, isHost, clueGiver, clueGiverSkipRequested }: PlayersProps) => {
   const { profile } = useUserProfile();
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
-  const [isExpandedOnMobile, setIsExpandedOnMobile] = useState(false)
+  // desktop กางไว้เป็นค่าเริ่มต้น / มือถือพับไว้ (กล่องนี้แสดงหลังโหลดฝั่ง client แล้ว จึงอ่านขนาดจอได้เลย)
+  const [isExpanded, setIsExpanded] = useState(() => window.matchMedia(DESKTOP_MEDIA_QUERY).matches)
   const panelRef = useRef<HTMLElement | null>(null)
 
   // ปิดเมนูเมื่อกด Esc หรือคลิกนอกกล่องรายชื่อ
@@ -117,26 +120,30 @@ const PlayersPanel = ({ users, hostId, isHost, clueGiver, clueGiverSkipRequested
       aria-label="รายชื่อผู้เล่น"
       className="rounded-[1.75rem] border-[3px] border-clayEdge bg-surface p-4 shadow-clay sm:p-5"
     >
-      {/* หัวกล่อง: มือถือเป็นปุ่มพับ/กาง ส่วน desktop เป็นหัวข้อธรรมดา (รายชื่อกางไว้ตลอด) */}
+      {/* หัวกล่อง: กดเพื่อพับ/กาง (พับแล้วบน desktop แชทจะได้พื้นที่เพิ่ม) */}
       <button
         type="button"
-        onClick={() => setIsExpandedOnMobile((current) => !current)}
-        aria-expanded={isExpandedOnMobile}
+        onClick={() => setIsExpanded((current) => !current)}
+        aria-expanded={isExpanded}
         aria-controls="players-panel-content"
-        className="flex min-h-[48px] w-full cursor-pointer items-center gap-3 rounded-2xl text-left focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-mediumYellow/60 lg:hidden"
+        className="flex min-h-[48px] w-full cursor-pointer items-center gap-3 rounded-2xl text-left focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-mediumYellow/60"
       >
         <PanelTitle playerCount={users.length} />
         <ChevronDown
           size={22}
           aria-hidden="true"
-          className={clsx("ml-auto text-muted transition-transform duration-200", isExpandedOnMobile && "rotate-180")}
+          className={clsx("ml-auto text-muted transition-transform duration-200", isExpanded && "rotate-180")}
         />
       </button>
-      <div className="hidden items-center gap-3 lg:flex">
-        <PanelTitle playerCount={users.length} />
-      </div>
 
-      <div id="players-panel-content" className={clsx("mt-4 flex-col gap-4", isExpandedOnMobile ? "flex" : "hidden", "lg:flex")}>
+      {/* desktop: สูงไม่เกินครึ่งจอ ที่เหลือให้แชท ถ้ารายชื่อยาวให้ scroll ในกล่อง */}
+      <div
+        id="players-panel-content"
+        className={clsx(
+          "mt-4 flex-col gap-4 lg:-mr-2 lg:max-h-[50vh] lg:overflow-y-auto lg:pr-2",
+          isExpanded ? "flex" : "hidden"
+        )}
+      >
         {/* แนะนำ host ว่าต้องเลือกคนให้คำใบ้ก่อนเริ่มเล่น */}
         {isHost && !clueGiver && (
           <div className="flex gap-2.5 rounded-2xl border-2 border-mediumYellow/70 bg-mediumYellow/15 p-3 text-sm text-lightBrown">
