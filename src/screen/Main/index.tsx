@@ -5,10 +5,11 @@ import { socket } from '@/lib/socket'
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Modal, { ModalOptions } from '@/component/Modal'
+import FullScreenLoading from '@/component/FullScreenLoading'
 import GameContent, { GameState } from './GameContent'
-import InputText from '@/component/InputText'
 import PlayersPanel from './GameContent/PlayersPanel'
-import { TeamKey } from './GameContent/TeamManagement'
+import RoomHeader from './RoomHeader'
+import ClueSection from './ClueSection'
 
 export default function MainScreen() {
   const { profile, profileReady, updateProfile } = useUserProfile()
@@ -17,7 +18,6 @@ export default function MainScreen() {
   const error = searchParams.get('error')
   const roomId = searchParams.get("room");
   const [gameState, setGameState] = useState<GameState | null>(null);
-  const [clueInput, setClueInput] = useState('')
 
   const [isHost, setIsHost] = useState(false);
   const [modalOptions, setModalOptions] = useState<ModalOptions>({
@@ -44,18 +44,15 @@ export default function MainScreen() {
   };
 
 
-  // ส่งคำใบ้ได้ไม่จำกัดครั้ง คำใหม่จะแทนที่คำเดิมทันที
-  const submitClue = () => {
-    const trimmedClue = clueInput.trim()
-    if (!trimmedClue) return
-    socket.emit('submitClue', { roomId: gameState?.roomId, clue: trimmedClue });
+  // กลับไป lobby = ออกจากห้อง (เข้าใหม่ได้จากรายชื่อห้อง แต่ต้องเลือกทีมใหม่ และไม่ได้ host คืน)
+  const handleLeaveRoomToLobby = () => {
+    socket.emit("leaveRoom", {
+      roomId: profile.roomId,
+      userId: profile.userId,
+      name: profile.userName
+    });
+    router.push('/lobby')
   }
-
-  // เริ่มรอบใหม่ server ล้างคำใบ้แล้ว ช่องพิมพ์ก็ต้องล้างตาม ไม่งั้นคำใบ้รอบก่อนจะค้างในช่อง
-  const currentRoundNumber = gameState?.roundNumber
-  useEffect(() => {
-    setClueInput('')
-  }, [currentRoundNumber])
 
   useEffect(() => {
     if (!profile?.userId) return;
@@ -161,84 +158,38 @@ export default function MainScreen() {
   }, []);
 
 
-  if (!profileReady || !profile) return <div>กำลังโหลดข้อมูลผู้เล่น...</div>;
-  if (!gameState) return <p>กำลังโหลดข้อมูลเกม...</p>;
-
-  const clueGiverUser = gameState?.users?.find((user) => user.userId === gameState.clueGiver)
-  const teamColor = (team?: TeamKey) => (team === 'teamA' ? 'text-teamA' : team === "teamB" ? 'text-teamB' : 'white')
-
+  if (!profileReady || !profile || !gameState) return <FullScreenLoading />;
 
   return (
-    <div className="p-6 h-full ">
-      {error === 'missingProfile' && (
-        <div className="text-red-600 mb-4 font-semibold">
-          โปรดระบุชื่อก่อนเข้าห้อง
-        </div>
-      )}
+    <main className="min-h-screen px-4 pb-12 pt-4 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-[1280px]">
+        {error === 'missingProfile' && (
+          <p role="alert" className="mb-4 rounded-2xl border-2 border-teamB bg-teamB/15 px-4 py-2 font-medium text-teamBText">
+            โปรดระบุชื่อก่อนเข้าห้อง
+          </p>
+        )}
 
-      <h1 className="text-xl font-semibold mb-2">
-        สวัสดี {profile.userName} {isHost && "(Host)"}
-      </h1>
+        <RoomHeader
+          roomId={roomId ?? gameState.roomId}
+          playerName={profile.userName}
+          isHost={isHost}
+          onLeaveRoom={handleLeaveRoomToLobby}
+        />
 
-      <div className="flex justify-between">
-        <div>
-          <div >
-            <h2>ห้อง: {roomId}</h2>
-            <div >
-              <p className="inline">ผู้ให้คำใบ้: </p>
-              <p className={`inline font-medium ${teamColor(clueGiverUser?.team as TeamKey)}`}>
-                {clueGiverUser?.name || ''}
-              </p>
-            </div>
+        {/* desktop: เกมอยู่ซ้าย รายชื่อผู้เล่นอยู่ขวา / มือถือ: รายชื่อผู้เล่น (พับได้) อยู่บนสุด */}
+        <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-6">
+          <aside className="lg:sticky lg:top-4 lg:col-start-2 lg:row-start-1">
+            <PlayersPanel users={gameState.users} hostId={gameState.hostId} isHost={isHost} clueGiver={gameState.clueGiver} />
+          </aside>
 
-
-            {/* 🔄 แสดงหน้าปัด, ปุ่มใบ้, ปุ่มเดา ฯลฯ ตรงนี้ */}
+          <div className="flex min-w-0 flex-col gap-5 lg:col-start-1 lg:row-start-1">
+            <ClueSection gameState={gameState} isClueGiver={isClueGiver} />
+            <GameContent gameState={gameState} />
           </div>
-          {isClueGiver ? (
-            <div className="flex flex-col gap-2 max-w-[180px]" >
-              <p>
-                คุณเป็น คนให้คำใบ้ !! 🎯
-              </p>
-              <InputText
-                value={clueInput}
-                maxLength={100}
-                onChange={(event) => setClueInput(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') submitClue()
-                }}
-              />
-              <button
-                disabled={!clueInput.trim()}
-                className={`mt-2 p-2 w-[100px] rounded-[6px] 
-                  font-medium
-                  ${clueInput.trim() ? 'bg-lightBrown text-darkBrown' : 'bg-gray-400 text-white cursor-default pointer-events-none'}
-                  `}
-                onClick={submitClue}
-              >
-                ส่งคำใบ้
-              </button>
-              {gameState.clue && (
-                <p className="text-[14px]">
-                  คำใบ้ตอนนี้: <span className="font-medium">{gameState.clue}</span>
-                </p>
-              )}
-            </div>
-          ) : (
-            <div className="flex gap-2">คำใบ้คือ:
-              <p className="font-medium">{gameState?.clue}</p>
-            </div>
-
-          )}
-
         </div>
-
-        <PlayersPanel users={gameState.users} hostId={gameState.hostId} isHost={isHost} clueGiver={gameState.clueGiver} />
       </div>
 
-
-      <GameContent gameState={gameState} />
-
       <Modal options={{ ...modalOptions, onClose: handleCloseModal }} />
-    </div>
+    </main>
   )
 }

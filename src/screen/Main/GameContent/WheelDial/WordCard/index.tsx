@@ -1,7 +1,8 @@
 import { socket } from "@/lib/socket";
 import {  useState } from "react";
 import { GameState } from "../..";
-import { Dices } from "lucide-react";
+import { ArrowLeft, ArrowRight, Dices, RotateCcw } from "lucide-react";
+import Button from "@/component/Button";
 import Modal, { ModalOptions } from "@/component/Modal";
 
 type WordCardProps = {
@@ -40,53 +41,34 @@ const WordCard = ({ gameState, isHost, isClueGiver }: WordCardProps) => {
     })
   }
 
-  const CardClass = `min-w-[100px] max-w-[150px] min-h-[100px]  bg-mediumBrown p-3 rounded-[8px] 
-  text-white  text-[18px] justify-items-center text-center content-center
-  cursor-default  
-  `
+  // การ์ดคำ 2 ฝั่งของสเปกตรัม (ซ้าย = ปลายซ้ายของหน้าปัด, ขวา = ปลายขวา)
+  const cardClass = "card-flip-in flex min-h-[96px] flex-1 items-center justify-center gap-2 rounded-clay border-[3px] border-clayEdge bg-lightBrown px-3 py-3 text-center font-display text-lg font-medium text-darkBrown shadow-clay-sm sm:text-xl"
 
   return (
-    <div className="flex flex-col gap-3 w-full justify-center mt-2">
-      <div className="flex flex-row w-full gap-5 justify-center">
+    <div className="flex w-full flex-col gap-3">
+      <div className="mx-auto flex w-full max-w-[560px] gap-3 sm:gap-4">
         {/* key เปลี่ยนตามคู่คำ ทำให้การ์ดพลิกเข้ามาใหม่ทุกครั้งที่สุ่มคู่คำ */}
-        <div
-          key={`left-${leftWord}-${rightWord}`}
-          id="left"
-          className={`${CardClass} card-flip-in`}
-          style={{
-            boxShadow: "2px 4px 3px 0px rgba(0,0,0,0.8)"
-          }}
-        >
-          {leftWord}
+        <div key={`left-${leftWord}-${rightWord}`} id="left" className={cardClass}>
+          <ArrowLeft size={20} aria-hidden="true" className="shrink-0 text-mediumBrown" />
+          <span className="break-words">{leftWord || "—"}</span>
         </div>
 
-        <div
-          key={`right-${leftWord}-${rightWord}`}
-          id="right"
-          className={`${CardClass} card-flip-in`}
-          style={{
-            boxShadow: "-2px 4px 3px 0px rgba(0,0,0,0.8)",
-            animationDelay: "120ms",
-          }}
-        >
-          {rightWord}
+        <div key={`right-${leftWord}-${rightWord}`} id="right" className={cardClass} style={{ animationDelay: "120ms" }}>
+          <span className="break-words">{rightWord || "—"}</span>
+          <ArrowRight size={20} aria-hidden="true" className="shrink-0 text-mediumBrown" />
         </div>
       </div>
 
-
       {(isHost || isClueGiver) &&
-        <div className="flex flex-col gap-2 items-center">
-          <button
-            className="flex flex-row gap-2 rounded-[50px] bg-lightBrown p-2 text-darkBrown font-medium text-[16px] "
-            onClick={handleRandomPairWord}
-          >
-            สุ่มคู่คำใหม่ <Dices />
-          </button>
-          <p className="text-white p-1 text-[14px] cursor-pointer"
-            onClick={handleResetUsedWord}
-          >
-            รีเซ็ทคำใช้แล้ว
-          </p>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <Button variant="secondary" size="sm" onClick={handleRandomPairWord}>
+            <Dices size={18} aria-hidden="true" />
+            สุ่มคู่คำใหม่
+          </Button>
+          <Button variant="ghost" size="sm" onClick={handleResetUsedWord}>
+            <RotateCcw size={16} aria-hidden="true" />
+            รีเซ็ตคำที่ใช้แล้ว
+          </Button>
         </div>
       }
       <Modal

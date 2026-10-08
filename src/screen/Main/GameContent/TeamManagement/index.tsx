@@ -1,7 +1,9 @@
 import { socket } from "@/lib/socket";
 import { GameState } from "..";
-import React from "react";
+import { Shuffle } from "lucide-react";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import Button from "@/component/Button";
+import TeamScoreCard from "./TeamScoreCard";
 
 type TeamManagementProps = {
   gameState: GameState;
@@ -9,14 +11,11 @@ type TeamManagementProps = {
 }
 export type TeamKey = 'teamA' | 'teamB';
 
+const TEAMS: TeamKey[] = ['teamA', 'teamB'];
+
+// กระดานคะแนน 2 ทีม + ปุ่มสุ่มทีม (host)
 const TeamManagement = ({ gameState, isHost }: TeamManagementProps) => {
   const { profile } = useUserProfile()
-
-  type TeamScoreLabelType = Record<TeamKey, string>;
-  const TEAM_SCORE_LABEL: TeamScoreLabelType = {
-    teamA: 'TEAM A: ',
-    teamB: 'TEAM B: '
-  }
 
   const handleAdjustTeamScore = (type: '+' | "-", team: string) => {
     socket.emit('updateTeamScore', {
@@ -46,64 +45,33 @@ const TeamManagement = ({ gameState, isHost }: TeamManagementProps) => {
     socket.emit('randomizeTeam', { roomId: gameState.roomId })
   }
 
-  const teamFontColor = (team: TeamKey) => (team === 'teamA' ? 'text-teamA' : 'text-teamB')
-  const teamBgColor = (team: TeamKey) => (team === 'teamA' ? 'bg-teamA' : 'bg-teamB')
-
-
   const thisPlayerFromGameState = gameState.users.find((user) => user.userId === profile.userId)
 
   return (
-    <React.Fragment>
-      <div id="team-score" className="flex flex-row justify-between my-4 gap-4" >
-        {gameState.scores && Object.keys(gameState.scores).map((team, index) => (
-          <React.Fragment key={index}>
-            <div id={team} className='flex flex-col'>
-              <button className={`p-2 ${teamBgColor(team as TeamKey)} font-medium text-white rounded-lg mb-4`}
-                style={{
-                  visibility: !thisPlayerFromGameState?.team || thisPlayerFromGameState?.team !== team ? 'visible' : 'hidden'
-                }}
-                onClick={() => handleSelectTeam(team as TeamKey)}
-              >
-                {`เข้าร่วมทีม ${team === "teamA" ? "A" : "B"}`}
-              </button>
-
-              {isHost ? <button className="p-2 bg-lightBrown text-darkBrown font-medium rounded-lg"
-                onClick={() => handleStartTurnOfTeam(team as TeamKey)}
-              >
-                {`เริ่มรอบของทีม ${team === "teamA" ? "A" : "B"}`}
-              </button> : null
-              }
-
-              <div className="flex flex-row gap-2 items-center">
-                <p className={`text-center font-bold text-[20px] ${teamFontColor(team as TeamKey)}`}
-                >
-                  {TEAM_SCORE_LABEL[team as TeamKey]}
-                </p>
-                <p className="text-center font-bold text-[32px]">
-                  {/* key เปลี่ยนตามคะแนน ทำให้ animation เด้งเล่นใหม่ทุกครั้งที่คะแนนเปลี่ยน */}
-                  <span key={gameState.scores[team as TeamKey] || 0} className="score-pop">
-                    {gameState.scores[team as TeamKey] || 0}
-                  </span>
-                </p>
-              </div>
-              {
-                isHost && <div className="flex flex-row gap-10 text-darkBrown justify-center">
-                  <button className="rounded-[20px] bg-lightBrown w-10 h-10 p-2 text-[16px]" onClick={() => handleAdjustTeamScore('-', team)}>-</button>
-                  <button className="rounded-[20px] bg-lightBrown w-10 h-10 p-2 text-[16px] font-medium" onClick={() => handleAdjustTeamScore('+', team)}>+</button>
-                </div>
-              }
-            </div>
-            {isHost && index === 0 &&
-              <button className="p-2 w-14 h-14 rounded-[50px] bg-mediumBrown self-end font-medium"
-                onClick={handleRandomTeam}
-              >
-                สุ่มทีม
-              </button>}
-          </React.Fragment>
+    <div id="team-score" className="flex flex-col gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        {TEAMS.map((team) => (
+          <TeamScoreCard
+            key={team}
+            team={team}
+            score={gameState.scores?.[team] || 0}
+            isTeamTurn={gameState.turn === team}
+            isMyTeam={thisPlayerFromGameState?.team === team}
+            isHost={isHost}
+            onJoinTeam={() => handleSelectTeam(team)}
+            onStartTurn={() => handleStartTurnOfTeam(team)}
+            onAdjustScore={(method) => handleAdjustTeamScore(method, team)}
+          />
         ))}
       </div>
-    </React.Fragment>
 
+      {isHost && (
+        <Button variant="secondary" size="sm" className="self-center" onClick={handleRandomTeam}>
+          <Shuffle size={16} aria-hidden="true" />
+          สุ่มทีม
+        </Button>
+      )}
+    </div>
   )
 }
 

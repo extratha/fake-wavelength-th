@@ -15,7 +15,12 @@ import WheelSvg from "./WheelSvg";
 import LeftRightGuess from "./LeftRightGuess";
 import RoundResultPanel from "./RoundResultPanel";
 import { TeamKey } from "../TeamManagement";
-import { Eye, EyeClosed } from "lucide-react";
+import { Dices, Eye, EyeClosed, EyeOff } from "lucide-react";
+import Button from "@/component/Button";
+import IconButton from "@/component/IconButton";
+
+// ปุ่มหมุนเข็ม: ซ้าย 10 / ซ้าย 1 / ขวา 1 / ขวา 10 องศา
+const DIAL_STEPS = [-10, -1, 1, 10];
 
 type WheelDialProps = {
   gameState: GameState;
@@ -162,13 +167,19 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
     setIsPeekScreen(!isPeeking);
   };
 
+  // ข้อความบอกว่าทำไมหมุนเข็มไม่ได้ (ปุ่มถูกปิดไว้)
+  const dialLockedReason = gameState.isRoundLocked
+    ? "เปิดหน้าปัดแล้ว เข็มถูกล็อก"
+    : !gameState.clueGiver
+      ? "รอ host เลือกคนให้คำใบ้ก่อน"
+      : !canRotateDial
+        ? "หมุนเข็มได้เฉพาะเพื่อนร่วมทีมของคนให้คำใบ้"
+        : null;
+
   return (
-    <div className="relative w-full p2">
-      <div
-        id="wheelWrap"
-        className="relative w-[calc(100%-60px)] max-w-[1200px] aspect-square mx-auto "
-      >
-        <div id="wheelSvg" className="relative w-full overflow-hidden border-4 border-[#4b352a]">
+    <div className="flex w-full flex-col gap-4">
+      <div className="relative mx-auto w-full max-w-[720px]">
+        <div id="wheelSvg" className="overflow-hidden">
           <WheelSvg
             dialRotation={displayedDialRotation}
             markerRotation={gameState.markerRotation}
@@ -182,81 +193,81 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
           />
         </div>
 
-        <RoundResultPanel gameState={gameState} isHost={isHost} />
-
-        {/* Controls */}
-        <div className=" w-full z-20 left-0 sm:mt-10 mx-auto" >
-          {
-            isClueGiver && <div className="w-full  top-[50%] left-[-36%] sm:left-0 mx-auto flex justify-center z-50">
-              <button onClick={handlePeekScreen} className="w-14 h-14  px-3 py-1 bg-lightBrown rounded-[300px] text-darkBrown font-medium justify-items-center">
-                {isPeeking ? <EyeClosed /> : <Eye />}
-              </button>
-            </div>
-          }
-
-
-          <WordCard gameState={gameState} isHost={isHost} isClueGiver={isClueGiver} />
-
-          <div
-            className="w-full flex flex-col sm:flex-row justify-center items-center bottom-[100px] left-0 p-5 gap-6 sm:gap-3 mx-auto text-darkBrown"
-            style={{ zIndex: "10" }}
+        {/* ปุ่มแง้มดูเป้า (เฉพาะคนให้คำใบ้) วางมุมขวาล่างของหน้าปัด */}
+        {isClueGiver && (
+          <IconButton
+            size="lg"
+            variant="secondary"
+            aria-label={isPeeking ? "เลิกแง้มดูเป้า" : "แง้มดูเป้า"}
+            aria-pressed={isPeeking}
+            title={isPeeking ? "เลิกแง้มดูเป้า" : "แง้มดูเป้า"}
+            onClick={handlePeekScreen}
+            className="absolute bottom-3 right-3"
           >
-            {(isHost || isClueGiver) &&
-              <button  
-              onClick={randomizeMarker} 
-              disabled={gameState.disableRandomMaker} 
-              className={`h-10 px-3 py-1 ${gameState.disableRandomMaker ? 'bg-gray-400 text-white cursor-default pointer-events-none' : 'bg-lightBrown'} 
-              rounded-lg max-w-40 font-medium`}>
-                สุ่มหมุนคะแนน 
-                </button>
-
-            }
-            <div className={`flex gap-2 items-center ${isDialLocked ? "opacity-40 pointer-events-none" : ""}`}>
-              <button onClick={() => rotateDial(-10)} className="w-10 h-10 px-3 py-1 bg-lightBrown rounded-[50px]">-</button>
-              <button onClick={() => rotateDial(-1)} className="w-8 h-8 px-3 py-1 bg-lightBrown rounded-[50px]">-</button>
-              <button onClick={() => rotateDial(1)} className="w-8 h-8 px-3 py-1 bg-lightBrown rounded-[50px] font-medium">+</button>
-              <button onClick={() => rotateDial(10)} className="w-10 h-10 px-3 py-1 bg-lightBrown rounded-[50px] font-medium">+</button>
-            </div>
-
-            {(isClueGiver || isHost) && (
-              <button
-                onClick={toggleScreen}
-                className={`animated-border-button ${gameState.screenOpen ? "opened" : ""}
-                 h-10 px-3 py-1 max-w-40 font-medium text-white`}
-              >
-                <p>
-                  {gameState?.screenOpen ? "ซ่อนคะแนน" : "เปิดคะแนนให้ทุกคน"}
-                </p>
-              </button>
-            )}
-          </div>
-
-          <LeftRightGuess gameState={gameState} myTeam={myTeam} />
-        </div>
+            {isPeeking ? <EyeClosed size={22} aria-hidden="true" /> : <Eye size={22} aria-hidden="true" />}
+          </IconButton>
+        )}
       </div>
+
+      <RoundResultPanel gameState={gameState} isHost={isHost} />
+
+      <WordCard gameState={gameState} isHost={isHost} isClueGiver={isClueGiver} />
+
+      {/* หมุนเข็มทีละ 1 / 10 องศา (นอกจากการลากบนหน้าปัด) */}
+      <div className="flex flex-col items-center gap-2">
+        <div role="group" aria-label="หมุนเข็ม" className="flex items-center gap-2">
+          {DIAL_STEPS.map((step) => (
+            <IconButton
+              key={step}
+              size={Math.abs(step) === 10 ? "lg" : "md"}
+              aria-label={`หมุนเข็มไปทาง${step < 0 ? "ซ้าย" : "ขวา"} ${Math.abs(step)} องศา`}
+              disabled={isDialLocked}
+              onClick={() => rotateDial(step)}
+              className="font-sans font-semibold tabular-nums"
+            >
+              {step > 0 ? `+${step}` : `−${Math.abs(step)}`}
+            </IconButton>
+          ))}
+        </div>
+        {dialLockedReason && <p className="text-center text-sm text-muted">{dialLockedReason}</p>}
+      </div>
+
+      {(isHost || isClueGiver) && (
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <Button variant="secondary" disabled={gameState.disableRandomMaker} onClick={randomizeMarker}>
+            <Dices size={18} aria-hidden="true" />
+            สุ่มเป้า
+          </Button>
+          <Button variant={gameState.screenOpen ? "ghost" : "primary"} onClick={toggleScreen}>
+            {gameState.screenOpen ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+            {gameState.screenOpen ? "ซ่อนคะแนน" : "เปิดคะแนนให้ทุกคน"}
+          </Button>
+        </div>
+      )}
+
+      <LeftRightGuess gameState={gameState} myTeam={myTeam} />
 
       <Modal options={modalOptions}>
         <div>
-          <p className="text-[20px] font-medium text-center">
+          <p className="text-center font-display text-xl font-medium">
             ยืนยันเปิดคะแนนหรือไม่
           </p>
-          <div className="flex flex-row justify-between mt-4">
-            <button
-              className="w-20 rounded-lg bg-darkBrown text-white p-2"
-              onClick={handleConfirmToggleScreen}
-            >
-              ยืนยัน
-            </button>
-            <button
-              className="w-20 rounded-lg bg-darkBrown text-white p-2 "
+          <p className="mt-1 text-center text-sm text-darkBrown/80">เปิดแล้วจะล็อกเข็มและการแทงซ้าย/ขวาทันที</p>
+          <div className="mt-5 flex flex-row justify-center gap-3">
+            <Button
+              variant="secondary"
               onClick={() => {
                 setModalOptions({
                   open: false,
                 });
               }}
             >
-              ปิด
-            </button>
+              ยกเลิก
+            </Button>
+            <Button onClick={handleConfirmToggleScreen}>
+              <Eye size={18} aria-hidden="true" />
+              ยืนยันเปิด
+            </Button>
           </div>
         </div>
       </Modal>
