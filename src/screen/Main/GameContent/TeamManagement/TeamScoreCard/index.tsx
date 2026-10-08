@@ -48,14 +48,15 @@ const TeamScoreCard = ({
         )}
       </div>
 
-      <div className="flex items-center justify-center gap-2 sm:gap-3">
+      {/* มือถือ: เบียดปุ่ม +/- เข้าหาตัวเลข ไม่ให้ล้นการ์ด (การ์ดกว้างแค่ ~140px) */}
+      <div className="flex items-center justify-center gap-1 sm:gap-3">
         {isHost && (
           <IconButton aria-label={`ลดคะแนน${teamLabel}`} onClick={() => onAdjustScore("-")}>
             <Minus size={18} aria-hidden="true" />
           </IconButton>
         )}
         {/* ตัวเลขใช้ฟอนต์เนื้อความ: เลข 0 ของ Mitr มีขีดเฉียงดูเหมือน Ø */}
-        <p className="min-w-[3ch] text-center font-sans text-5xl font-bold tabular-nums text-lightBrown">
+        <p className="min-w-[2ch] text-center font-sans text-4xl font-bold tabular-nums text-lightBrown sm:text-5xl">
           {/* key เปลี่ยนตามคะแนน ทำให้ animation เด้งเล่นใหม่ทุกครั้งที่คะแนนเปลี่ยน */}
           <span key={score} className="score-pop">
             {score}
@@ -80,9 +81,11 @@ const TeamScoreCard = ({
           </Button>
         )}
         {isHost && (
-          <Button variant="ghost" size="sm" fullWidth onClick={onStartTurn}>
+          <Button variant="ghost" size="sm" fullWidth onClick={onStartTurn} aria-label={`เริ่มรอบของ${teamLabel}`}>
             <Play size={16} aria-hidden="true" />
-            เริ่มรอบของ{teamLabel}
+            {/* มือถือข้อความสั้น จะได้ไม่ขึ้น 2 บรรทัด (การ์ดบอกชื่อทีมอยู่แล้ว) */}
+            <span className="sm:hidden">เริ่มรอบ</span>
+            <span className="hidden sm:inline">เริ่มรอบของ{teamLabel}</span>
           </Button>
         )}
       </div>

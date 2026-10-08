@@ -1,5 +1,6 @@
 import debounce from "lodash.debounce";
 import { useEffect, useMemo, useState } from "react";
+import clsx from "clsx";
 import { socket } from "@/lib/socket";
 import { GameState } from "..";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -178,7 +179,7 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
 
   return (
     <div className="flex w-full flex-col gap-4">
-      <div className="relative mx-auto w-full max-w-[720px]">
+      <div className={clsx("relative mx-auto w-full max-w-[720px]", isClueGiver && "mb-3")}>
         <div id="wheelSvg" className="overflow-hidden">
           <WheelSvg
             dialRotation={displayedDialRotation}
@@ -193,19 +194,22 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
           />
         </div>
 
-        {/* ปุ่มแง้มดูเป้า (เฉพาะคนให้คำใบ้) วางมุมขวาล่างของหน้าปัด */}
+        {/* ปุ่มแง้มดูเป้า (เฉพาะคนให้คำใบ้): ลอยทับขอบล่างกลางหน้าปัด ~60% (กลางหน้าปัดไม่มีข้อมูลสำคัญ)
+            ใช้ div ห่อเพื่อจัดตำแหน่ง ไม่ให้ transform ชนกับเอฟเฟกต์กดยุบของปุ่ม
+            ส่วนที่ยื่นลงมาด้านล่าง เผื่อที่ไว้ด้วย mb-3 ของกล่องหน้าปัด จะได้ไม่ทับการ์ดคู่คำ */}
         {isClueGiver && (
-          <IconButton
-            size="lg"
-            variant="secondary"
-            aria-label={isPeeking ? "เลิกแง้มดูเป้า" : "แง้มดูเป้า"}
-            aria-pressed={isPeeking}
-            title={isPeeking ? "เลิกแง้มดูเป้า" : "แง้มดูเป้า"}
-            onClick={handlePeekScreen}
-            className="absolute bottom-3 right-3"
-          >
-            {isPeeking ? <EyeClosed size={22} aria-hidden="true" /> : <Eye size={22} aria-hidden="true" />}
-          </IconButton>
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-[40%]">
+            <IconButton
+              size="lg"
+              variant="secondary"
+              aria-label={isPeeking ? "เลิกแง้มดูเป้า" : "แง้มดูเป้า"}
+              aria-pressed={isPeeking}
+              title={isPeeking ? "เลิกแง้มดูเป้า" : "แง้มดูเป้า"}
+              onClick={handlePeekScreen}
+            >
+              {isPeeking ? <EyeClosed size={22} aria-hidden="true" /> : <Eye size={22} aria-hidden="true" />}
+            </IconButton>
+          </div>
         )}
       </div>
 

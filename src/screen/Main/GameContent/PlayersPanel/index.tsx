@@ -3,7 +3,7 @@
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { socket } from "@/lib/socket";
 import clsx from "clsx";
-import { ChevronDown, EllipsisVertical, Info, Users } from "lucide-react";
+import { ChevronDown, EllipsisVertical, Hand, Info, Users } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { TeamKey } from "../TeamManagement";
 import { TEAM_DOT_CLASS, TEAM_LABEL, TEAM_TEXT_CLASS, isTeamKey } from "../../teamStyles";
@@ -20,6 +20,7 @@ type PlayersProps = {
   hostId: string;
   isHost: boolean;
   clueGiver: string | null;
+  clueGiverSkipRequested: boolean;
 }
 
 // ลำดับกลุ่มที่แสดง: ทีม A, ทีม B แล้วตามด้วยคนที่ยังไม่เลือกทีม
@@ -34,13 +35,13 @@ const PanelTitle = ({ playerCount }: { playerCount: number }) => (
       <Users size={20} />
     </span>
     <h2 className="text-xl font-medium text-lightBrown">
-      ผู้เล่น <span className="text-muted">({playerCount})</span>
+      ผู้เล่น <span className="font-sans tabular-nums text-muted">({playerCount})</span>
     </h2>
   </>
 );
 
 // รายชื่อผู้เล่นในห้อง (desktop อยู่คอลัมน์ขวาและกางไว้ตลอด / มือถือพับเก็บได้)
-const PlayersPanel = ({ users, hostId, isHost, clueGiver }: PlayersProps) => {
+const PlayersPanel = ({ users, hostId, isHost, clueGiver, clueGiverSkipRequested }: PlayersProps) => {
   const { profile } = useUserProfile();
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [isExpandedOnMobile, setIsExpandedOnMobile] = useState(false)
@@ -102,6 +103,7 @@ const PlayersPanel = ({ users, hostId, isHost, clueGiver }: PlayersProps) => {
       isMe={player.userId === profile?.userId}
       isPlayerHost={player.userId === hostId}
       isPlayerClueGiver={player.userId === clueGiver}
+      isRequestingSkip={clueGiverSkipRequested && player.userId === clueGiver}
       canManage={isHost}
       isMenuOpen={selectedPlayerId === player.userId}
       onToggleMenu={() => setSelectedPlayerId((current) => (current === player.userId ? null : player.userId))}
@@ -148,13 +150,26 @@ const PlayersPanel = ({ users, hostId, isHost, clueGiver }: PlayersProps) => {
           </div>
         )}
 
+        {/* คนให้คำใบ้ยกมือขอข้าม: บอก host ให้เลือกคนใหม่เอง */}
+        {isHost && clueGiver && clueGiverSkipRequested && (
+          <div role="status" className="flex gap-2.5 rounded-2xl border-2 border-lightBrown bg-lightBrown/15 p-3 text-sm text-lightBrown">
+            <Hand size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-lightBrown" />
+            <p>
+              <span className="font-semibold">{users.find((player) => player.userId === clueGiver)?.name ?? "คนให้คำใบ้"}</span>{" "}
+              ยกมือขอข้าม: กด{" "}
+              <EllipsisVertical size={16} aria-label="ปุ่มจัดการ" className="inline-block align-text-bottom text-mediumYellow" />{" "}
+              ที่ชื่อคนอื่นในทีม แล้วเลือก<span className="font-semibold"> &ldquo;ตั้งเป็นคนให้คำใบ้&rdquo;</span>
+            </p>
+          </div>
+        )}
+
         {TEAM_GROUP_ORDER.map((team) => {
           const teamPlayers = users.filter((player) => player.team === team);
           return (
             <div key={team}>
               <h3 className={clsx("mb-2 flex items-center gap-2 text-sm font-medium", TEAM_TEXT_CLASS[team])}>
                 <span aria-hidden="true" className={clsx("h-2.5 w-2.5 rounded-full", TEAM_DOT_CLASS[team])} />
-                {TEAM_LABEL[team]} <span className="text-muted">({teamPlayers.length})</span>
+                {TEAM_LABEL[team]} <span className="font-sans tabular-nums text-muted">({teamPlayers.length})</span>
               </h3>
               {teamPlayers.length > 0 ? (
                 <ul className="flex flex-col gap-2">{teamPlayers.map(renderPlayer)}</ul>
@@ -169,7 +184,7 @@ const PlayersPanel = ({ users, hostId, isHost, clueGiver }: PlayersProps) => {
           <div>
             <h3 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted">
               <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-muted/60" />
-              ยังไม่เลือกทีม <span>({playersWithoutTeam.length})</span>
+              ยังไม่เลือกทีม <span className="font-sans tabular-nums">({playersWithoutTeam.length})</span>
             </h3>
             <ul className="flex flex-col gap-2">{playersWithoutTeam.map(renderPlayer)}</ul>
           </div>

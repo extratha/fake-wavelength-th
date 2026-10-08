@@ -179,7 +179,13 @@ export default function MainScreen() {
         {/* desktop: เกมอยู่ซ้าย รายชื่อผู้เล่นอยู่ขวา / มือถือ: รายชื่อผู้เล่น (พับได้) อยู่บนสุด */}
         <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-6">
           <aside className="lg:sticky lg:top-4 lg:col-start-2 lg:row-start-1">
-            <PlayersPanel users={gameState.users} hostId={gameState.hostId} isHost={isHost} clueGiver={gameState.clueGiver} />
+            <PlayersPanel
+              users={gameState.users}
+              hostId={gameState.hostId}
+              isHost={isHost}
+              clueGiver={gameState.clueGiver}
+              clueGiverSkipRequested={gameState.clueGiverSkipRequested}
+            />
           </aside>
 
           <div className="flex min-w-0 flex-col gap-5 lg:col-start-1 lg:row-start-1">

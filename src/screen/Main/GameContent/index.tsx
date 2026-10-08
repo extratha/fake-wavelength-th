@@ -37,6 +37,8 @@ export type GameState = {
   roundNumber: number;
   roundResult: RoundResult | null;
   winner: TeamKey | null;
+  // คนให้คำใบ้ยกมือขอข้าม รอ host เลือกคนใหม่
+  clueGiverSkipRequested: boolean;
 };
 
 type GameContentProps = {
