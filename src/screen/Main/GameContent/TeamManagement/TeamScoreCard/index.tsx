@@ -13,6 +13,8 @@ type TeamScoreCardProps = {
   isHost: boolean;
   // ระบบนำทางไฮไลต์ปุ่ม "เริ่มรอบ" (host ยังไม่ได้เลือกทีมที่เล่น)
   isStartTurnHighlighted: boolean;
+  // ทีมที่ได้เล่นต่อตามกติกา catch-up (null = ไม่มี) ถ้าไม่ใช่ทีมนี้ ปุ่มเริ่มรอบจะถูกปิด
+  catchUpTeam: TeamKey | null;
   onJoinTeam: () => void;
   onStartTurn: () => void;
   onAdjustScore: (method: "+" | "-") => void;
@@ -26,11 +28,13 @@ const TeamScoreCard = ({
   isMyTeam,
   isHost,
   isStartTurnHighlighted,
+  catchUpTeam,
   onJoinTeam,
   onStartTurn,
   onAdjustScore,
 }: TeamScoreCardProps) => {
   const teamLabel = TEAM_LABEL[team];
+  const isBlockedByCatchUp = !!catchUpTeam && catchUpTeam !== team;
 
   return (
     <section
@@ -89,6 +93,7 @@ const TeamScoreCard = ({
             size="sm"
             fullWidth
             onClick={onStartTurn}
+            disabled={isBlockedByCatchUp}
             aria-label={`เริ่มรอบของ${teamLabel}`}
             className={clsx(isStartTurnHighlighted && "guide-highlight")}
           >
@@ -97,6 +102,9 @@ const TeamScoreCard = ({
             <span className="sm:hidden">เริ่มรอบ</span>
             <span className="hidden sm:inline">เริ่มรอบของ{teamLabel}</span>
           </Button>
+        )}
+        {isHost && isBlockedByCatchUp && catchUpTeam && (
+          <p className="text-center text-xs text-muted">catch-up: {TEAM_LABEL[catchUpTeam]} ได้เล่นต่อก่อน</p>
         )}
       </div>
     </section>

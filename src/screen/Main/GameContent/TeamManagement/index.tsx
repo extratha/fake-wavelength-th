@@ -48,6 +48,8 @@ const TeamManagement = ({ gameState, isHost, isStartTurnHighlighted }: TeamManag
   }
 
   const thisPlayerFromGameState = gameState.users.find((user) => user.userId === profile.userId)
+  // catch-up: ทีมที่ทายตรงเผงแต่ยังตามหลังได้เล่นต่อ ปิดปุ่มเริ่มรอบของอีกทีม (กัน host ลืม)
+  const catchUpTeam = gameState.roundResult?.isCatchUpTurn && !gameState.winner ? gameState.roundResult.nextTurn : null
 
   return (
     <div id="team-score" className="flex flex-col gap-3">
@@ -61,6 +63,7 @@ const TeamManagement = ({ gameState, isHost, isStartTurnHighlighted }: TeamManag
             isMyTeam={thisPlayerFromGameState?.team === team}
             isHost={isHost}
             isStartTurnHighlighted={isStartTurnHighlighted}
+            catchUpTeam={catchUpTeam}
             onJoinTeam={() => handleSelectTeam(team)}
             onStartTurn={() => handleStartTurnOfTeam(team)}
             onAdjustScore={(method) => handleAdjustTeamScore(method, team)}

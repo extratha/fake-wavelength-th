@@ -700,6 +700,10 @@ io.on("connection", (socket) => {
 
     if (team !== 'teamA' && team !== 'teamB') return
 
+    // catch-up: ทีมที่ทายตรงเผงแต่ยังตามหลังต้องได้เล่นต่อ ห้ามเริ่มรอบของอีกทีมก่อน
+    const catchUpTeam = room.state.roundResult?.isCatchUpTurn && !room.state.winner ? room.state.roundResult.nextTurn : null
+    if (catchUpTeam && team !== catchUpTeam) return rejectUnauthorized(socket, 'setTurnOfTeam')
+
     room.state.turn = team
 
     // สุ่มคนให้คำใบ้จากทีมนี้ให้อัตโนมัติ ถ้าคนให้คำใบ้ตอนนี้ไม่ได้อยู่ทีมนี้ (host ยังเปลี่ยนเองได้ทีหลัง)

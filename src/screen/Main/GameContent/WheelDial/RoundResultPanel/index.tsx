@@ -126,13 +126,19 @@ const RoundResultPanel = ({ gameState, isHost, isNextRoundHighlighted }: RoundRe
                   )}
                 </p>
 
+                {/* catch-up: ทายตรงเผงแต่ยังตามหลัง ได้เล่นต่ออีกตา (เน้นให้เห็น host จะได้ไม่เริ่มรอบผิดทีม) */}
+                {!winner && roundResult.isCatchUpTurn && (
+                  <p className="rounded-xl bg-mediumYellow/15 px-3 py-1.5 text-sm font-semibold text-mediumYellow">
+                    Catch-up! {TEAM_LABEL[roundResult.guessingTeam]} ทายตรงเผงแต่ยังตามหลัง ได้เล่นต่ออีกตา
+                  </p>
+                )}
+
                 {!winner && (
                   <p className="text-sm text-muted">
                     ตาต่อไป:{" "}
                     <span className={clsx("font-bold", TEAM_TEXT_CLASS[roundResult.nextTurn])}>
                       {TEAM_LABEL[roundResult.nextTurn]}
                     </span>
-                    {roundResult.isCatchUpTurn && " (catch-up: เข้าเป้าแต่ยังตามหลัง ได้เล่นต่อ)"}
                   </p>
                 )}
               </>
