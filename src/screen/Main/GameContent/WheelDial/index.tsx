@@ -178,7 +178,7 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
 
   return (
     <div className="flex w-full flex-col gap-4">
-      <div className="relative mx-auto w-full max-w-[720px]">
+      <div className="mx-auto w-full max-w-[720px]">
         <div id="wheelSvg" className="overflow-hidden">
           <WheelSvg
             dialRotation={displayedDialRotation}
@@ -193,21 +193,22 @@ const WheelDial = ({ gameState }: WheelDialProps) => {
           />
         </div>
 
-        {/* ปุ่มแง้มดูเป้า (เฉพาะคนให้คำใบ้) วางมุมขวาล่างของหน้าปัด */}
-        {isClueGiver && (
-          <IconButton
-            size="lg"
-            variant="secondary"
-            aria-label={isPeeking ? "เลิกแง้มดูเป้า" : "แง้มดูเป้า"}
-            aria-pressed={isPeeking}
-            title={isPeeking ? "เลิกแง้มดูเป้า" : "แง้มดูเป้า"}
-            onClick={handlePeekScreen}
-            className="absolute bottom-3 right-3"
-          >
-            {isPeeking ? <EyeClosed size={22} aria-hidden="true" /> : <Eye size={22} aria-hidden="true" />}
-          </IconButton>
-        )}
       </div>
+
+      {/* ปุ่มแง้มดูเป้า (เฉพาะคนให้คำใบ้) อยู่กึ่งกลางใต้หน้าปัด เหนือการ์ดคู่คำ */}
+      {isClueGiver && (
+        <IconButton
+          size="lg"
+          variant="secondary"
+          aria-label={isPeeking ? "เลิกแง้มดูเป้า" : "แง้มดูเป้า"}
+          aria-pressed={isPeeking}
+          title={isPeeking ? "เลิกแง้มดูเป้า" : "แง้มดูเป้า"}
+          onClick={handlePeekScreen}
+          className="self-center"
+        >
+          {isPeeking ? <EyeClosed size={22} aria-hidden="true" /> : <Eye size={22} aria-hidden="true" />}
+        </IconButton>
+      )}
 
       <RoundResultPanel gameState={gameState} isHost={isHost} />
 
