@@ -49,7 +49,7 @@ const RoundResultPanel = ({ gameState, isHost }: RoundResultPanelProps) => {
             <span className={clsx("font-bold", TEAM_TEXT_CLASS[roundResult.guessingTeam])}>
               {TEAM_LABEL[roundResult.guessingTeam]}
             </span>{" "}
-            ได้ <span className="text-2xl font-semibold text-mediumYellow">+{roundResult.guessingTeamPoints}</span>
+            ได้ <span className="font-sans text-2xl font-bold tabular-nums text-mediumYellow">+{roundResult.guessingTeamPoints}</span>
             {roundResult.guessingTeamPoints === 4 && (
               <span className="inline-flex items-center gap-1 text-mediumYellow">
                 <Target size={18} aria-hidden="true" /> เข้าเป้า!

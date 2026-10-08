@@ -34,7 +34,7 @@ const PanelTitle = ({ playerCount }: { playerCount: number }) => (
       <Users size={20} />
     </span>
     <h2 className="text-xl font-medium text-lightBrown">
-      ผู้เล่น <span className="text-muted">({playerCount})</span>
+      ผู้เล่น <span className="font-sans tabular-nums text-muted">({playerCount})</span>
     </h2>
   </>
 );
@@ -154,7 +154,7 @@ const PlayersPanel = ({ users, hostId, isHost, clueGiver }: PlayersProps) => {
             <div key={team}>
               <h3 className={clsx("mb-2 flex items-center gap-2 text-sm font-medium", TEAM_TEXT_CLASS[team])}>
                 <span aria-hidden="true" className={clsx("h-2.5 w-2.5 rounded-full", TEAM_DOT_CLASS[team])} />
-                {TEAM_LABEL[team]} <span className="text-muted">({teamPlayers.length})</span>
+                {TEAM_LABEL[team]} <span className="font-sans tabular-nums text-muted">({teamPlayers.length})</span>
               </h3>
               {teamPlayers.length > 0 ? (
                 <ul className="flex flex-col gap-2">{teamPlayers.map(renderPlayer)}</ul>
@@ -169,7 +169,7 @@ const PlayersPanel = ({ users, hostId, isHost, clueGiver }: PlayersProps) => {
           <div>
             <h3 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted">
               <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-muted/60" />
-              ยังไม่เลือกทีม <span>({playersWithoutTeam.length})</span>
+              ยังไม่เลือกทีม <span className="font-sans tabular-nums">({playersWithoutTeam.length})</span>
             </h3>
             <ul className="flex flex-col gap-2">{playersWithoutTeam.map(renderPlayer)}</ul>
           </div>
