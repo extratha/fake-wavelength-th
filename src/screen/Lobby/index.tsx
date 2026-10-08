@@ -194,8 +194,7 @@ export default function Lobby() {
 					errorMessage={nameError}
 				/>
 
-				<CreateRoomSection onCreateRoom={createRoom} />
-
+				{/* เข้าห้องก่อน: ผู้เล่นควรเห็นก่อนว่ามีห้องที่ออนไลน์อยู่ไหม ถ้าไม่มีค่อยสร้างห้องใหม่ด้านล่าง */}
 				<JoinRoomSection
 					roomCode={roomIdInput}
 					roomCodeError={roomCodeError}
@@ -206,6 +205,8 @@ export default function Lobby() {
 					onJoinRoom={joinRoom}
 					rooms={availableRooms}
 				/>
+
+				<CreateRoomSection onCreateRoom={createRoom} />
 			</div>
 
 			<Modal
