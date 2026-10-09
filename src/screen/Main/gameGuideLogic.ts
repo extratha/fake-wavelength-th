@@ -14,11 +14,11 @@ export type GuideTarget =
 // ขั้นตอนของคนให้คำใบ้ในแต่ละรอบ เรียงตามลำดับที่ต้องทำ
 export type ClueGiverStep = "pickPairWord" | "setTarget" | "peekTarget" | "submitClue";
 
-export const CLUE_GIVER_STEPS: { step: ClueGiverStep; label: string; instruction: string }[] = [
-  { step: "pickPairWord", label: "สุ่มคู่คำ", instruction: "กด \"สุ่มคู่คำใหม่\" เพื่อเลือกคู่คำของรอบนี้" },
-  { step: "setTarget", label: "หมุนโซนคะแนน", instruction: "กด \"หมุนโซนคะแนน\" เพื่อสุ่มตำแหน่งเป้าบนหน้าปัด" },
-  { step: "peekTarget", label: "แง้มดูเป้า", instruction: "กดปุ่มรูปตาใต้หน้าปัด เพื่อแง้มดูว่าเป้าอยู่ตรงไหน (คนอื่นไม่เห็น)" },
-  { step: "submitClue", label: "ใบ้คำ", instruction: "พิมพ์คำใบ้ที่ชี้ไปทางเป้า แล้วกดส่ง" },
+export const CLUE_GIVER_STEPS: { step: ClueGiverStep; instruction: string }[] = [
+  { step: "pickPairWord", instruction: "กด \"สุ่มคู่คำใหม่\" เพื่อเลือกคู่คำของรอบนี้" },
+  { step: "setTarget", instruction: "กด \"หมุนโซนคะแนน\" เพื่อสุ่มตำแหน่งเป้าบนหน้าปัด" },
+  { step: "peekTarget", instruction: "กดปุ่มรูปตาใต้หน้าปัด เพื่อแง้มดูว่าเป้าอยู่ตรงไหน (คนอื่นไม่เห็น)" },
+  { step: "submitClue", instruction: "พิมพ์คำใบ้ที่ชี้ไปทางเป้า แล้วกดส่ง" },
 ];
 
 export type GameGuide =

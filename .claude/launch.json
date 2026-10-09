@@ -12,10 +12,10 @@
     },
     {
       "name": "web",
-      "runtimeExecutable": "sh",
+      "runtimeExecutable": "cmd",
       "runtimeArgs": [
-        "-c",
-        "NEXT_PUBLIC_SOCKET_URL=http://localhost:4000 npm run dev"
+        "/c",
+        "set NEXT_PUBLIC_SOCKET_URL=http://localhost:4000&& npm run dev"
       ],
       "port": 3000,
       "autoPort": true

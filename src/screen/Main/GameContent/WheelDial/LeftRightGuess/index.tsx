@@ -45,36 +45,67 @@ const LeftRightGuess = ({ gameState, myTeam, isHighlighted }: LeftRightGuessProp
         )}
       </p>
 
-      <div
-        role="group"
-        aria-label="แทงซ้ายหรือขวา"
-        className={clsx("flex gap-3 rounded-clay", isHighlighted && "guide-highlight")}
-      >
-        {GUESS_OPTIONS.map((option) => {
-          const isSelected = gameState.leftRightGuess === option.value;
-          return (
-            <Button
-              key={option.value}
-              size="sm"
-              variant={isSelected ? opposingTeam : "secondary"}
-              aria-pressed={isSelected}
-              onClick={() => handleGuess(option.value)}
-              disabled={!canGuess}
-              // คำแทงที่เลือกไว้ยังต้องเห็นชัดแม้ปุ่มถูกล็อก
-              className={clsx("min-w-[96px]", isSelected && "disabled:opacity-100")}
-            >
-              {option.value === "left" && <ChevronLeft size={18} aria-hidden="true" />}
-              {option.label}
-              {option.value === "right" && <ChevronRight size={18} aria-hidden="true" />}
-            </Button>
-          );
-        })}
+      {/* ทีมที่แทงได้เห็นปุ่ม คนอื่นเห็นแค่สถานะการแทง (สูงเท่าแถวปุ่ม จะได้ไม่กระตุกตอนสลับทีม) */}
+      <div className="flex min-h-[44px] items-center justify-center">
+        {canGuess ? (
+          <div
+            role="group"
+            aria-label="แทงซ้ายหรือขวา"
+            className={clsx("flex gap-3 rounded-clay", isHighlighted && "guide-highlight")}
+          >
+            {GUESS_OPTIONS.map((option) => {
+              const isSelected = gameState.leftRightGuess === option.value;
+              return (
+                <Button
+                  key={option.value}
+                  size="sm"
+                  variant={isSelected ? opposingTeam : "secondary"}
+                  aria-pressed={isSelected}
+                  onClick={() => handleGuess(option.value)}
+                  className="min-w-[96px]"
+                >
+                  {option.value === "left" && <ChevronLeft size={18} aria-hidden="true" />}
+                  {option.label}
+                  {option.value === "right" && <ChevronRight size={18} aria-hidden="true" />}
+                </Button>
+              );
+            })}
+          </div>
+        ) : (
+          <GuessStatus opposingTeam={opposingTeam} guess={gameState.leftRightGuess} isLocked={isLocked} />
+        )}
       </div>
-
-      {myTeam !== opposingTeam && !isLocked && (
-        <p className="text-sm text-muted">เฉพาะ{TEAM_LABEL[opposingTeam]} เท่านั้นที่กดแทงได้</p>
-      )}
     </div>
+  );
+};
+
+type GuessStatusProps = {
+  opposingTeam: TeamKey;
+  guess: LeftRightGuessValue | null;
+  isLocked: boolean;
+};
+
+// สถานะการแทงสำหรับคนที่กดแทงไม่ได้
+const GuessStatus = ({ opposingTeam, guess, isLocked }: GuessStatusProps) => {
+  if (!guess) {
+    return (
+      <p className="text-sm text-muted">
+        {isLocked ? `${TEAM_LABEL[opposingTeam]} ไม่ได้แทง` : `รอ${TEAM_LABEL[opposingTeam]} แทง…`}
+      </p>
+    );
+  }
+
+  const guessLabel = GUESS_OPTIONS.find((option) => option.value === guess)?.label;
+  return (
+    <p className="flex items-center gap-1.5 text-base">
+      <span className={clsx("font-semibold", TEAM_TEXT_CLASS[opposingTeam])}>{TEAM_LABEL[opposingTeam]}</span>
+      แทง
+      <span className="inline-flex items-center gap-0.5 font-semibold">
+        {guess === "left" && <ChevronLeft size={18} aria-hidden="true" />}
+        {guessLabel}
+        {guess === "right" && <ChevronRight size={18} aria-hidden="true" />}
+      </span>
+    </p>
   );
 };
 

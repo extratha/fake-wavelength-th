@@ -308,23 +308,26 @@ const WheelDial = ({ gameState, guideTarget, onPeekTarget }: WheelDialProps) => 
       </div>
 
       {/* ---------- โซนคุมหน้าปัด ---------- */}
-      {/* หมุนเข็มทีละ 1 / 10 องศา (นอกจากการลากบนหน้าปัด) */}
-      <div className="flex flex-col items-center gap-2">
-        <div role="group" aria-label="หมุนเข็ม" className="flex items-center gap-2">
-          {DIAL_STEPS.map((step) => (
-            <IconButton
-              key={step}
-              size={Math.abs(step) === 10 ? "lg" : "md"}
-              aria-label={`หมุนเข็มไปทาง${step < 0 ? "ซ้าย" : "ขวา"} ${Math.abs(step)} องศา`}
-              disabled={isDialLocked}
-              onClick={() => rotateDial(step)}
-              className="font-sans font-semibold tabular-nums"
-            >
-              {step > 0 ? `+${step}` : `−${Math.abs(step)}`}
-            </IconButton>
-          ))}
-        </div>
-        {dialLockedReason && <p className="text-center text-sm text-muted">{dialLockedReason}</p>}
+      {/* หมุนเข็มทีละ 1 / 10 องศา (นอกจากการลากบนหน้าปัด)
+          คนที่หมุนไม่ได้ไม่ต้องเห็นปุ่ม แสดงเหตุผลแทน ในพื้นที่สูงเท่าแถวปุ่ม จะได้ไม่กระตุกตอนสลับบทบาท */}
+      <div className="flex h-14 items-center justify-center">
+        {isDialLocked ? (
+          <p className="text-center text-sm text-muted">{dialLockedReason}</p>
+        ) : (
+          <div role="group" aria-label="หมุนเข็ม" className="flex items-center gap-2">
+            {DIAL_STEPS.map((step) => (
+              <IconButton
+                key={step}
+                size={Math.abs(step) === 10 ? "lg" : "md"}
+                aria-label={`หมุนเข็มไปทาง${step < 0 ? "ซ้าย" : "ขวา"} ${Math.abs(step)} องศา`}
+                onClick={() => rotateDial(step)}
+                className="font-sans font-semibold tabular-nums"
+              >
+                {step > 0 ? `+${step}` : `−${Math.abs(step)}`}
+              </IconButton>
+            ))}
+          </div>
+        )}
       </div>
 
       {(isHost || isClueGiver) && (
@@ -338,10 +341,13 @@ const WheelDial = ({ gameState, guideTarget, onPeekTarget }: WheelDialProps) => 
             <RefreshCw size={18} aria-hidden="true" />
             หมุนโซนคะแนน
           </Button>
-          <Button variant={gameState.screenOpen ? "ghost" : "primary"} onClick={toggleScreen}>
-            {gameState.screenOpen ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
-            {gameState.screenOpen ? "ซ่อนคะแนน" : "เปิดคะแนนให้ทุกคน"}
-          </Button>
+          {/* ยังไม่หมุนโซนคะแนนก็ยังไม่มีอะไรให้เปิด (ถ้าเปิดค้างอยู่ ต้องยังกดซ่อนได้) */}
+          {(gameState.isTargetSet || gameState.screenOpen) && (
+            <Button variant={gameState.screenOpen ? "ghost" : "primary"} onClick={toggleScreen}>
+              {gameState.screenOpen ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+              {gameState.screenOpen ? "ซ่อนคะแนน" : "เปิดคะแนนให้ทุกคน"}
+            </Button>
+          )}
         </div>
       )}
 
